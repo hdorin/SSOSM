@@ -106,14 +106,14 @@ def extract_features(mail_dir, dictionary):
 def build_model(x_train,y_train):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(2, activation=tf.nn.softmax))
+    model.add(tf.keras.layers.Dense(6, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(6, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=3)
+    model.fit(x_train, y_train, epochs=12)
 
 if len(sys.argv) == 1:
     print("Run it with arguments!")
@@ -131,22 +131,18 @@ elif sys.argv[1] == "train":
     x_train, y_train = extract_features(sys.argv[2], dictionary)
 
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    print(x_train[5][0:1000])
-    #build_model(x_train, y_train)
+    #print(x_train[5][0:1000])
+    build_model(x_train, y_train)
     # x_test = tf.keras.utils.normalize(x_test, axis=1)
 
-    import xlsxwriter
 
-    workbook = xlsxwriter.Workbook('arrays.xlsx')
-    worksheet = workbook.add_worksheet()
 
-    for row in range(10):
-        for col in range(150):
+    #for row in range(10):
+    #    for col in range(150):
             #worksheet.write_column(0, col, x_train[row, col])
             #if x_train[row,col] > 0:
-            print(str(row) + " " + str(col) + " - " + str(x_train[row, col]))
+            #print(str(row) + " " + str(col) + " - " + str(x_train[row, col]))
 
-    workbook.close()
     exit(0)
 
     # f_read.close()
