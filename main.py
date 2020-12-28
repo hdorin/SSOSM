@@ -7,45 +7,41 @@ from collections import Counter
 
 def find_spam_words(words):
     for word in words:
+        if "biz." in word:
+            return "SPAM! -" + word
         if "@trash" in word:
-            print("SPAM! -" + word)
-            return True
+            return "SPAM! -" + word
         if "p://facebook" in word:
-            print("SPAM! -" + word)
-            return True
+            return "SPAM! -" + word
         if "p://bbc" in word:
-            print("SPAM! -" + word)
-            return True
-        if "p://w3" in word or "w3helper.":
-            print("SPAM! -" + word)
-            return True
+            return "SPAM! -" + word
+        if "p://w3" in word or "w3helper." in word:
+            return "SPAM! -" + word
         if "facebook." in word and not "facebook.com" in word:
-            print("SPAM! -" + word)
-            return True
+            return "SPAM! -" + word
         if "@nightmail" in word or ".nightmail" in word:
-            print("SPAM! -" + word)
-            return True
+            return "SPAM! -" + word
         if "@nightmail" in word:
-            print("SPAM! -" + word)
-            return True
-        if ",000,000" in word or ".000.000":
-            print("SPAM! -" + word)
-            return True
-    return False
+            return "SPAM! -" + word
+        if "$" in word and "000" in word:
+            return "SPAM! -" + word
+        if "livefilestore." in word:
+            return "SPAM! -" + word
+
+
+    return None
 
 def make_dictionary(train_dir):
     emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
     all_words = []
     for mail in emails:
-        # print(mail)
         with open(mail, encoding="Latin-1") as m:
             for i, line in enumerate(m):
-                # print(line)
                 if i == 2:  # Body of email is only 3rd line of text file
                     words = line.split()
                     all_words += words
-                    if find_spam_words(words) == True:
-                        print(mail)
+                    if  find_spam_words(words) != None:
+                        print(find_spam_words(words))
 
 
     dictionary = Counter(all_words)
@@ -53,7 +49,7 @@ def make_dictionary(train_dir):
     for item in list(list_to_remove):
         if item.isalpha() == False and not str(item).endswith(".") and not str(item).endswith(",") \
                 and not str(item).endswith("!") and not str(item).endswith("?"):
-            print(item)
+            #print(item)
             del dictionary[item]
         elif len(item) == 1:
             del dictionary[item]
