@@ -20,13 +20,36 @@ def find_spam_words(words):
 
     return None
 
+def is_time(word):
+    try:
+        time=re.search(r"[0-9]{1,2}(:| )[0-9]{1,2}((:| )[0-9]{1,2})?",word)[0]
+    except:
+        return False
+
+    return time
+
+def is_date(word):
+    try:
+        date=re.search(r"[0-9]{1,4}(/| )[0-9]{1,4}(/| )[0-9]{1,4}",word)[0]
+    except:
+        return False
+
+    return date
+
+def is_year(word):
+    try:
+        year=re.search(r"(19[0-9]{2})|(20[0-9]{2})",word)[0]
+    except:
+        return False
+
+    return year
 
 def process_words(words):
     for index, item in enumerate(words):
         words[index] = words[index].lower()
 
         if item.isalpha() == False:
-            print("NON-ALPHA " + words[index])
+            #print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
                 can_be_link = False
                 try:
@@ -34,43 +57,52 @@ def process_words(words):
                         can_be_link = True
                     if can_be_link == True:
                         re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
-
                 except:
                     #print("Not link!! " + words[index])
                     can_be_link = False
 
-                if str(words[index]).startswith('$') and len(words[index]) >=1+4:
+                if str(words[index]).startswith('$') and len(words[index]) >=1+4 and str(words[index])[1].isnumeric():
                     words[index] = "$$$"
-                    print(words[index])
-                elif str(words[index]).startswith('usd$') and len(words[index]) >=4+4:
+                elif str(words[index]).startswith('usd$') and len(words[index]) >=4+4 and str(words[index])[1].isnumeric():
                     words[index] = "usd$$$"
-                    print(words[index])
                     new_word = list()
                     new_word.append("$$$")
                     words = words + new_word
-                    print(words)
-                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 2:
+                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric():
                     words[index] = "$$"
-                    print(words[index])
-                    print(words)
-                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 1:
+                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric():
                     words[index] = "$"
-                    print(words[index])
-                    print(words)
                 elif '@' in words[index] and re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index]):
                     words[index] = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
-                    print(">CONTINE email " + words[index])
+                    #print(">CONTINE email " + words[index])
                     new_word=list('')
                     new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0][1:])
                     words = words + new_word
-                    print(words)
 
+                elif ':' in words[index] and is_time(words[index]) != False:
+                    words[index] = is_time(words[index])
+                    new_word = list('')
+                    new_word.append("found_time")
+                    words = words + new_word
+                    print("Found time!!! " + words[index])
+                elif len(str(words[index])) == 4 and is_year(words[index]) != False:
+                    words[index]=is_year(words[index])
+                    new_word = list('')
+                    new_word.append("found_year")
+                    words = words + new_word
+                    print("Found year!!! " + words[index])
+                elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(words[index]) != False:
+                    words[index] = is_date(words[index])
+                    new_word = list('')
+                    new_word.append("found_year")
+                    words = words + new_word
+                    print("Found year!!! " + words[index])
                 elif can_be_link == True :
-                    print(">CONTINE link " + words[index])
+                    #print(">CONTINE link " + words[index])
                     words[index] = re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
 
 
-                    print(">CONTINE link1 " + words[index])
+                    #print(">CONTINE link1 " + words[index])
                     if urlparse(words[index]).netloc:
                         domain = urlparse(words[index])
                         if '.' in domain.netloc:
@@ -81,7 +113,7 @@ def process_words(words):
                                 words[index] = domain.scheme + "://" + domain.netloc.split('.')[-2] + "." + \
                                                domain.netloc.split('.')[-1]
 
-                            print(">CONTINE link2 " + domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
+                            #print(">CONTINE link2 " + domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
                             # adaug domeniul
                             new_word = list()
                             new_word.append(domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
@@ -99,13 +131,13 @@ def process_words(words):
                         else:
                             words[index] = domain.netloc
 
-                        print(">CONTINE link3 " + words[index])
+                        #print(">CONTINE link3 " + words[index])
 
                     else:
                         new_word = list()
                         new_word.append("no_http")
                         words = words + new_word
-                        print("NO HTTP!" + words[index])
+                        #print("NO HTTP!" + words[index])
                         if words[index].startswith('w') and 'w.' in words[index]:
                             words[index] = words[index].split('.')[0] + "." + \
                                            words[index].split('.')[-2] + "." + \
@@ -116,7 +148,6 @@ def process_words(words):
                         new_word = list()
                         new_word.append(words[index].split('.')[-2] + "." + words[index].split('.')[-1])
                         words = words + new_word
-                    print(words)
                 elif str(words[index]).startswith('<') and False:
                     print(">GASIT tag " + item)
                     words[index] = ' '
@@ -172,7 +203,6 @@ def make_dictionary(train_dir):
             del dictionary[item]
 
     dictionary = dictionary.most_common(DICTIONARY_SIZE)
-    # del dictionary[0:25]
     # print(dictionary[0:DICTIONARY_SIZE])
     return dictionary
 
