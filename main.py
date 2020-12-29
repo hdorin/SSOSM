@@ -39,9 +39,24 @@ def process_words(words):
                     #print("Not link!! " + words[index])
                     can_be_link = False
 
-                if "$" in item and "000" in item:
+                if str(words[index]).startswith('$') and len(words[index]) >=1+4:
                     words[index] = "$$$"
                     print(words[index])
+                elif str(words[index]).startswith('usd$') and len(words[index]) >=4+4:
+                    words[index] = "usd$$$"
+                    print(words[index])
+                    new_word = list()
+                    new_word.append("$$$")
+                    words = words + new_word
+                    print(words)
+                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 2:
+                    words[index] = "$$"
+                    print(words[index])
+                    print(words)
+                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 1:
+                    words[index] = "$"
+                    print(words[index])
+                    print(words)
                 elif '@' in words[index] and re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index]):
                     words[index] = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
                     print(">CONTINE email " + words[index])
@@ -111,7 +126,7 @@ def process_words(words):
                     if '\'' in words[index]:
                         words[index] = words[index].replace('\'', '')
                     if '\"' in words[index]:
-                        words[index] = words[index].replace('\'', '')
+                        words[index] = words[index].replace('\"', '')
                     if str(words[index]).endswith(','):
                         words[index] = words[index].replace(',', '')
                     if str(words[index]).endswith('!'):
@@ -132,7 +147,6 @@ def process_words(words):
                         words[index] = words[index].replace(')', '')
                     words[index] = words[index].replace('-', ' ')
                     if words[index].isalpha() == False:
-
                         print(">NON-ALPHA " + words[index])
                         words[index] = ' '
     return words
