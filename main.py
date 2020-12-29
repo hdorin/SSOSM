@@ -28,6 +28,17 @@ def process_words(words):
         if item.isalpha() == False:
             print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
+                can_be_link = False
+                try:
+                    if 'w.' in words[index] or "://" in words[index]:
+                        can_be_link = True
+                    if can_be_link == True:
+                        re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
+
+                except:
+                    #print("Not link!! " + words[index])
+                    can_be_link = False
+
                 if "$" in item and "000" in item:
                     words[index] = "$$$"
                     print(words[index])
@@ -39,31 +50,58 @@ def process_words(words):
                     words = words + new_word
                     print(words)
 
-                elif 'w.' in words[index] or "://" in words[index]:
+                elif can_be_link == True :
                     print(">CONTINE link " + words[index])
+                    words[index] = re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
 
-                    words[index] = re.search(r"(https?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
-                    print(">CONTINE link " + words[index])
+
+                    print(">CONTINE link1 " + words[index])
                     if urlparse(words[index]).netloc:
                         domain = urlparse(words[index])
                         if '.' in domain.netloc:
-                            if str(domain.netloc.startswith('w')) and 'w.' in str(domain.netloc):
+                            if domain.netloc.startswith('w') and 'w.' in str(domain.netloc):
                                 words[index] = domain.scheme + "://" + domain.netloc.split('.')[0] + "."+domain.netloc.split('.')[-2] + "." + \
                                                domain.netloc.split('.')[-1]
                             else:
                                 words[index] = domain.scheme + "://" + domain.netloc.split('.')[-2] + "." + \
                                                domain.netloc.split('.')[-1]
-                            words = words + list(domain.netloc.split('.')[1] + '.')
+
+                            print(">CONTINE link2 " + domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
+                            # adaug domeniul
+                            new_word = list()
+                            new_word.append(domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
+                            words = words + new_word
+
+                            # adaug domeniul tarii
+                            new_word = list()
+                            new_word.append("." + domain.netloc.split('.')[-1])
+                            words = words + new_word
+
+                            #adaug http
+                            new_word = list()
+                            new_word.append(domain.scheme)
+                            words = words + new_word
                         else:
                             words[index] = domain.netloc
-                        if "http" not in domain.scheme:
-                            words = words + list(domain.scheme + "://")
-                        print(">CONTINE link " + words[index])
-                        print(list(domain.scheme + "://"))
+
+                        print(">CONTINE link3 " + words[index])
+
                     else:
-                        print(">NON-ALPHA " + words[index])
-                        print(domain)
-                        words[index] = ' '
+                        new_word = list()
+                        new_word.append("no_http")
+                        words = words + new_word
+                        print("NO HTTP!" + words[index])
+                        if words[index].startswith('w') and 'w.' in words[index]:
+                            words[index] = words[index].split('.')[0] + "." + \
+                                           words[index].split('.')[-2] + "." + \
+                                           words[index].split('.')[-1]
+                        else:
+                            words[index] = words[index].split('.')[-2] + "." + words[index].split('.')[-1]
+
+                        new_word = list()
+                        new_word.append(words[index].split('.')[-2] + "." + words[index].split('.')[-1])
+                        words = words + new_word
+                    print(words)
                 elif str(words[index]).startswith('<') and False:
                     print(">GASIT tag " + item)
                     words[index] = ' '
@@ -94,6 +132,7 @@ def process_words(words):
                         words[index] = words[index].replace(')', '')
                     words[index] = words[index].replace('-', ' ')
                     if words[index].isalpha() == False:
+
                         print(">NON-ALPHA " + words[index])
                         words[index] = ' '
     return words
@@ -200,8 +239,12 @@ elif sys.argv[1] == "train":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    model = build_model(x_train, y_train)
-    model.save("spam_filter.model")
+    #model = build_model(x_train, y_train)
+    #model.save("spam_filter.model")
+
+    f = open("dictionary.txt", "w")
+    f.write(str(dictionary[0:DICTIONARY_SIZE]))
+    f.close()
 
 elif sys.argv[1] == "train+scan":
     verdict = "cln"
@@ -222,7 +265,7 @@ elif sys.argv[1] == "train+scan":
     f.write(str(dictionary[0:DICTIONARY_SIZE]))
     f.close()
 
-    exit(0)
+
 
     # f_read.close()
     # if verdict == "inf":
