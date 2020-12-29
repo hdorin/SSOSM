@@ -20,36 +20,49 @@ def find_spam_words(words):
 
     return None
 
+
 def is_time(word):
     try:
-        time=re.search(r"[0-9]{1,2}(:| )[0-9]{1,2}((:| )[0-9]{1,2})?",word)[0]
+        time = re.search(r"[0-9]{1,2}(:| )[0-9]{1,2}((:| )[0-9]{1,2})?", word)[0]
     except:
         return False
 
     return time
 
+
 def is_date(word):
     try:
-        date=re.search(r"[0-9]{1,4}(/| )[0-9]{1,4}(/| )[0-9]{1,4}",word)[0]
+        date = re.search(r"[0-9]{1,4}(/| )[0-9]{1,4}(/| )[0-9]{1,4}", word)[0]
     except:
         return False
 
     return date
 
+
 def is_year(word):
     try:
-        year=re.search(r"(19[0-9]{2})|(20[0-9]{2})",word)[0]
+        year = re.search(r"(19[0-9]{2})|(20[0-9]{2})", word)[0]
     except:
         return False
 
     return year
+
+
+def is_normal_word(word):
+    try:
+        re.search(r"[a-zA-Z0-9></]", word)[0]
+    except:
+        return False
+
+    return True
+
 
 def process_words(words):
     for index, item in enumerate(words):
         words[index] = words[index].lower()
 
         if item.isalpha() == False:
-            #print("NON-ALPHA " + words[index])
+            # print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
                 can_be_link = False
                 try:
@@ -58,24 +71,28 @@ def process_words(words):
                     if can_be_link == True:
                         re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
                 except:
-                    #print("Not link!! " + words[index])
+                    # print("Not link!! " + words[index])
                     can_be_link = False
 
-                if str(words[index]).startswith('$') and len(words[index]) >=1+4 and str(words[index])[1].isnumeric():
+                if str(words[index]).startswith('$') and len(words[index]) >= 1 + 4 and str(words[index])[
+                    1].isnumeric():
                     words[index] = "$$$"
-                elif str(words[index]).startswith('usd$') and len(words[index]) >=4+4 and str(words[index])[1].isnumeric():
+                elif str(words[index]).startswith('usd$') and len(words[index]) >= 4 + 4 and str(words[index])[
+                    1].isnumeric():
                     words[index] = "usd$$$"
                     new_word = list()
                     new_word.append("$$$")
                     words = words + new_word
-                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric():
+                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 2 and str(words[index])[
+                    1].isnumeric():
                     words[index] = "$$"
-                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric():
+                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 1 and str(words[index])[
+                    1].isnumeric():
                     words[index] = "$"
                 elif '@' in words[index] and re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index]):
                     words[index] = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
-                    #print(">CONTINE email " + words[index])
-                    new_word=list('')
+                    # print(">CONTINE email " + words[index])
+                    new_word = list('')
                     new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0][1:])
                     words = words + new_word
 
@@ -84,36 +101,37 @@ def process_words(words):
                     new_word = list('')
                     new_word.append("found_time")
                     words = words + new_word
-                    print("Found time!!! " + words[index])
+                    # print("Found time!!! " + words[index])
                 elif len(str(words[index])) == 4 and is_year(words[index]) != False:
-                    words[index]=is_year(words[index])
+                    words[index] = is_year(words[index])
                     new_word = list('')
                     new_word.append("found_year")
                     words = words + new_word
-                    print("Found year!!! " + words[index])
-                elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(words[index]) != False:
+                    # print("Found year!!! " + words[index])
+                elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(
+                        words[index]) != False:
                     words[index] = is_date(words[index])
                     new_word = list('')
                     new_word.append("found_year")
                     words = words + new_word
-                    print("Found year!!! " + words[index])
-                elif can_be_link == True :
-                    #print(">CONTINE link " + words[index])
+                    # print("Found year!!! " + words[index])
+                elif can_be_link == True:
+                    # print(">CONTINE link " + words[index])
                     words[index] = re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
 
-
-                    #print(">CONTINE link1 " + words[index])
+                    # print(">CONTINE link1 " + words[index])
                     if urlparse(words[index]).netloc:
                         domain = urlparse(words[index])
                         if '.' in domain.netloc:
                             if domain.netloc.startswith('w') and 'w.' in str(domain.netloc):
-                                words[index] = domain.scheme + "://" + domain.netloc.split('.')[0] + "."+domain.netloc.split('.')[-2] + "." + \
+                                words[index] = domain.scheme + "://" + domain.netloc.split('.')[0] + "." + \
+                                               domain.netloc.split('.')[-2] + "." + \
                                                domain.netloc.split('.')[-1]
                             else:
                                 words[index] = domain.scheme + "://" + domain.netloc.split('.')[-2] + "." + \
                                                domain.netloc.split('.')[-1]
 
-                            #print(">CONTINE link2 " + domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
+                            # print(">CONTINE link2 " + domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
                             # adaug domeniul
                             new_word = list()
                             new_word.append(domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
@@ -124,20 +142,20 @@ def process_words(words):
                             new_word.append("." + domain.netloc.split('.')[-1])
                             words = words + new_word
 
-                            #adaug http
+                            # adaug http
                             new_word = list()
                             new_word.append(domain.scheme)
                             words = words + new_word
                         else:
                             words[index] = domain.netloc
 
-                        #print(">CONTINE link3 " + words[index])
+                        # print(">CONTINE link3 " + words[index])
 
                     else:
                         new_word = list()
                         new_word.append("no_http")
                         words = words + new_word
-                        #print("NO HTTP!" + words[index])
+                        # print("NO HTTP!" + words[index])
                         if words[index].startswith('w') and 'w.' in words[index]:
                             words[index] = words[index].split('.')[0] + "." + \
                                            words[index].split('.')[-2] + "." + \
@@ -178,7 +196,19 @@ def process_words(words):
                         words[index] = words[index].replace(')', '')
                     words[index] = words[index].replace('-', ' ')
                     if words[index].isalpha() == False:
-                        print(">NON-ALPHA " + words[index])
+
+                        if len(str(words[index])) > 50:
+                            new_word = list()
+                            new_word.append("long_non_alpha_word")
+                            words = words + new_word
+                            print("LONG WORD " + words[index])
+                        elif len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
+                            new_word = list()
+                            new_word.append("not_normal_word")
+                            words = words + new_word
+                            print("UNUSUAL WORD " + words[index])
+                        else:
+                            print(">NON-ALPHA " + words[index])
                         words[index] = ' '
     return words
 
@@ -263,9 +293,9 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
     for i, file in enumerate(files):
 
         if predictions[i] >= 0.5:
-            f.write(file + "|inf")
+            f.write(file + "|inf" + " " + str(predictions[i]))
         elif predictions[i] < 0.5:
-            f.write(file + "|cln")
+            f.write(file + "|cln" + " " + str(predictions[i]))
         else:
             f.write("Classification error!")
         f.write("\n")
@@ -283,8 +313,8 @@ elif sys.argv[1] == "train":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    #model = build_model(x_train, y_train)
-    #model.save("spam_filter.model")
+    # model = build_model(x_train, y_train)
+    # model.save("spam_filter.model")
 
     f = open("dictionary.txt", "w")
     f.write(str(dictionary[0:DICTIONARY_SIZE]))
@@ -308,8 +338,6 @@ elif sys.argv[1] == "train+scan":
     f = open("dictionary.txt", "w")
     f.write(str(dictionary[0:DICTIONARY_SIZE]))
     f.close()
-
-
 
     # f_read.close()
     # if verdict == "inf":
