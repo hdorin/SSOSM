@@ -74,20 +74,18 @@ def process_words(words):
                     # print("Not link!! " + words[index])
                     can_be_link = False
 
-                if str(words[index]).startswith('$') and len(words[index]) >= 1 + 4 and str(words[index])[
+                if len(words[index]) >= 1 + 4 + str(words[index]).startswith('$') and str(words[index])[
                     1].isnumeric():
                     words[index] = "$$$"
-                elif str(words[index]).startswith('usd$') and len(words[index]) >= 4 + 4 and str(words[index])[
+                elif len(words[index]) >= 4 + 4 and str(words[index]).startswith('usd$') and str(words[index])[
                     1].isnumeric():
                     words[index] = "usd$$$"
                     new_word = list()
                     new_word.append("$$$")
                     words = words + new_word
-                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 2 and str(words[index])[
-                    1].isnumeric():
+                elif len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric() and  str(words[index]).startswith('$'):
                     words[index] = "$$"
-                elif str(words[index]).startswith('$') and len(words[index]) >= 1 + 1 and str(words[index])[
-                    1].isnumeric():
+                elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
                     words[index] = "$"
                 elif '@' in words[index] and re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index]):
                     words[index] = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
@@ -108,8 +106,7 @@ def process_words(words):
                     new_word.append("found_year")
                     words = words + new_word
                     # print("Found year!!! " + words[index])
-                elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(
-                        words[index]) != False:
+                elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(words[index]) != False:
                     words[index] = is_date(words[index])
                     new_word = list('')
                     new_word.append("found_year")
@@ -201,14 +198,14 @@ def process_words(words):
                             new_word = list()
                             new_word.append("long_non_alpha_word")
                             words = words + new_word
-                            print("LONG WORD " + words[index])
+                            #print("LONG WORD " + words[index])
                         elif len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
                             new_word = list()
                             new_word.append("not_normal_word")
                             words = words + new_word
-                            print("UNUSUAL WORD " + words[index])
-                        else:
-                            print(">NON-ALPHA " + words[index])
+                            #print("UNUSUAL WORD " + words[index])
+                        #else:
+                        # print(">NON-ALPHA " + words[index])
                         words[index] = ' '
     return words
 
@@ -216,15 +213,17 @@ def process_words(words):
 def make_dictionary(train_dir):
     emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
     all_words = []
+    print("Making dictionary", end =" ", flush=True)
     for mail in emails:
         with open(mail, encoding="Latin-1") as m:
+            print(".", end =" ", flush=True)
             for i, line in enumerate(m):
-                if i == 2:  # Body of email is only 3rd line of text file
-                    words = line.split()
-                    words = process_words(words)  # parse URL, remove non-alpha words
-                    all_words += words
-                    # if  find_spam_words(words) != None:
-                    #    print(find_spam_words(words))
+                #if i == 2:  # Body of email is only 3rd line of text file
+                words = line.split()
+                words = process_words(words)  # parse URL, remove non-alpha words
+                all_words += words
+                # if  find_spam_words(words) != None:
+                #    print(find_spam_words(words))
 
     dictionary = Counter(all_words)
     list_to_remove = dictionary.keys()
@@ -243,7 +242,9 @@ def extract_features(mail_dir, dictionary):
     email_type = np.zeros((len(files)))
     docID = 0
     fileID = 0
+    print("\nExtracting features", end =" ", flush=True)
     for file in files:
+        print(".", end =" ", flush=True)
         if file.endswith(".cln"):
             email_type[fileID] = 0
         elif file.endswith(".inf"):
@@ -254,14 +255,13 @@ def extract_features(mail_dir, dictionary):
         fileID = fileID + 1
         with open(file, encoding="Latin-1") as fi:
             for i, line in enumerate(fi):
-                if i == 2:
-                    words = line.split()
-                    process_words(words)
-                    for word in words:
-                        for i, d in enumerate(dictionary):
-                            if d[0] == word:
-                                wordID = i
-                                features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
+                words = line.split()
+                process_words(words)
+                for word in words:
+                    for i, d in enumerate(dictionary):
+                        if d[0] == word:
+                            wordID = i
+                            features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
             docID = docID + 1
 
     return features_matrix, email_type
@@ -293,9 +293,9 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
     for i, file in enumerate(files):
 
         if predictions[i] >= 0.5:
-            f.write(file + "|inf" + " " + str(predictions[i]))
+            f.write(str(i) + ". " + file + "|inf" + " " + str(predictions[i]))
         elif predictions[i] < 0.5:
-            f.write(file + "|cln" + " " + str(predictions[i]))
+            f.write(str(i) + ". " + file + "|cln" + " " + str(predictions[i]))
         else:
             f.write("Classification error!")
         f.write("\n")
