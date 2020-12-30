@@ -6,7 +6,7 @@ import sys
 from collections import Counter
 import re
 
-DICTIONARY_SIZE = 10000
+DICTIONARY_SIZE = 20000
 
 
 def find_spam_words(words):
@@ -213,10 +213,10 @@ def process_words(words):
 def make_dictionary(train_dir):
     emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
     all_words = []
-    print("Making dictionary", end =" ", flush=True)
+    print("Making dictionary", end ="", flush=True)
     for mail in emails:
         with open(mail, encoding="Latin-1") as m:
-            print(".", end =" ", flush=True)
+            print(".", end ="", flush=True)
             for i, line in enumerate(m):
                 #if i == 2:  # Body of email is only 3rd line of text file
                 words = line.split()
@@ -232,8 +232,15 @@ def make_dictionary(train_dir):
             del dictionary[item]
 
     dictionary = dictionary.most_common(DICTIONARY_SIZE)
-    # print(dictionary[0:DICTIONARY_SIZE])
-    return dictionary
+    new_dictionary=dict()
+    for i,item in enumerate(dictionary):
+        new_dictionary[item[0]]=(i,item[1])
+
+
+
+
+    # print(new_dictionary)
+    return new_dictionary
 
 
 def extract_features(mail_dir, dictionary):
@@ -242,9 +249,9 @@ def extract_features(mail_dir, dictionary):
     email_type = np.zeros((len(files)))
     docID = 0
     fileID = 0
-    print("\nExtracting features", end =" ", flush=True)
+    print("\nExtracting features", end ="", flush=True)
     for file in files:
-        print(".", end =" ", flush=True)
+        print(".", end ="", flush=True)
         if file.endswith(".cln"):
             email_type[fileID] = 0
         elif file.endswith(".inf"):
@@ -258,9 +265,8 @@ def extract_features(mail_dir, dictionary):
                 words = line.split()
                 process_words(words)
                 for word in words:
-                    for i, d in enumerate(dictionary):
-                        if d[0] == word:
-                            wordID = i
+                        if word in dictionary:
+                            wordID = dictionary[word][0]
                             features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
             docID = docID + 1
 
@@ -270,14 +276,16 @@ def extract_features(mail_dir, dictionary):
 def build_model(x_train, y_train):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Flatten())
-    model.add(tf.keras.layers.Dense(128, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(128, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=8)
+    model.fit(x_train, y_train, epochs=10)
     return model
 
 
@@ -286,21 +294,25 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
     predictions = model.predict([x_test])
 
     files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
-    features_matrix = np.zeros((len(files), DICTIONARY_SIZE))
-    email_type = np.zeros((len(files)))
-    docID = 0
-    fileID = 0
+
+    nr_of_misses=0
     for i, file in enumerate(files):
 
         if predictions[i] >= 0.5:
             f.write(str(i) + ". " + file + "|inf" + " " + str(predictions[i]))
+            if file.endswith(".cln"):
+                nr_of_misses = nr_of_misses +1
+                f.write("MISS!")
         elif predictions[i] < 0.5:
             f.write(str(i) + ". " + file + "|cln" + " " + str(predictions[i]))
+            if file.endswith(".inf"):
+                nr_of_misses = nr_of_misses +1
+                f.write("MISS!")
         else:
             f.write("Classification error!")
         f.write("\n")
     f.close()
-
+    print("Misses: " + str(nr_of_misses))
 
 if len(sys.argv) == 1:
     print("Run it with arguments!")
@@ -317,7 +329,7 @@ elif sys.argv[1] == "train":
     # model.save("spam_filter.model")
 
     f = open("dictionary.txt", "w")
-    f.write(str(dictionary[0:DICTIONARY_SIZE]))
+    f.write(str(dictionary))
     f.close()
 
 elif sys.argv[1] == "train+scan":
@@ -336,7 +348,7 @@ elif sys.argv[1] == "train+scan":
     # print("loss: " + str(val_loss) + " - acc: " + str(val_acc))
 
     f = open("dictionary.txt", "w")
-    f.write(str(dictionary[0:DICTIONARY_SIZE]))
+    f.write(str(dictionary))
     f.close()
 
     # f_read.close()
