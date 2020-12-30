@@ -7,7 +7,7 @@ from collections import Counter
 import re
 import json
 
-DICTIONARY_SIZE = 50000
+DICTIONARY_SIZE = 6000
 
 
 def is_time(word):
@@ -302,7 +302,7 @@ def build_model(x_train, y_train):
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=4)
+    model.fit(x_train, y_train, epochs=5)
     return model
 
 
