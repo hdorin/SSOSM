@@ -60,19 +60,39 @@ def is_normal_word(word):
 def process_words(words):
     for index, item in enumerate(words):
         words[index] = words[index].lower()
+        if len(str(words[index])) > 100:
+            new_word = list()
+            new_word.append("long_word_100")
+            words = words + new_word
+            # print("LONG WORD " + words[index])
+        elif len(str(words[index])) > 50:
+            new_word = list()
+            new_word.append("long_word_50")
+            words = words + new_word
+            # print("LONG WORD " + words[index])
+        elif len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
+            words[index] = "not_normal_word"
 
-        if item.isalpha() == False:
+        elif item.isalpha() == False:
             # print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
                 can_be_link = False
+                can_be_email = False
                 try:
                     if 'w.' in words[index] or "://" in words[index]:
                         can_be_link = True
-                    if can_be_link == True:
                         re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
                 except:
                     # print("Not link!! " + words[index])
                     can_be_link = False
+
+                try:
+                    if '@' in words[index]:
+                        can_be_email = True
+                        re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
+                except:
+                    #print("Not email!! " + words[index])
+                    can_be_email = False
 
                 if len(words[index]) >= 1 + 4 + str(words[index]).startswith('$') and str(words[index])[
                     1].isnumeric():
@@ -87,12 +107,18 @@ def process_words(words):
                     words[index] = "$$"
                 elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
                     words[index] = "$"
-                elif '@' in words[index] and re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index]):
+                elif can_be_email == True:
                     words[index] = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
                     # print(">CONTINE email " + words[index])
+
                     new_word = list('')
                     new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0][1:])
                     words = words + new_word
+
+                    new_word = list('')
+                    new_word.append(re.search(r"[a-z0-9\.\-+_]+@", words[index])[0][0:-1])
+                    words = words + new_word
+                    #print("SENDER + " + new_word[0] + " _>" + words[index])
 
                 elif ':' in words[index] and is_time(words[index]) != False:
                     words[index] = is_time(words[index])
@@ -193,19 +219,6 @@ def process_words(words):
                         words[index] = words[index].replace(')', '')
                     words[index] = words[index].replace('-', ' ')
                     if words[index].isalpha() == False:
-
-                        if len(str(words[index])) > 50:
-                            new_word = list()
-                            new_word.append("long_non_alpha_word")
-                            words = words + new_word
-                            #print("LONG WORD " + words[index])
-                        elif len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
-                            new_word = list()
-                            new_word.append("not_normal_word")
-                            words = words + new_word
-                            #print("UNUSUAL WORD " + words[index])
-                        #else:
-                        # print(">NON-ALPHA " + words[index])
                         words[index] = ' '
     return words
 
@@ -279,13 +292,12 @@ def build_model(x_train, y_train):
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=10)
+    model.fit(x_train, y_train, epochs=12)
     return model
 
 
