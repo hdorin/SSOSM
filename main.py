@@ -10,18 +10,6 @@ import json
 DICTIONARY_SIZE = 30000
 
 
-def find_spam_words(words):
-    for word in words:
-        if "biz." in word:
-            return "SPAM! -" + word
-        if "@trash" in word:
-            return "SPAM! -" + word
-
-            return "SPAM! -" + word
-
-    return None
-
-
 def is_time(word):
     try:
         time = re.search(r"[0-9]{1,2}(:| )[0-9]{1,2}((:| )[0-9]{1,2})?", word)[0]
@@ -29,7 +17,6 @@ def is_time(word):
         return False
 
     return time
-
 
 def is_date(word):
     try:
@@ -39,7 +26,6 @@ def is_date(word):
 
     return date
 
-
 def is_year(word):
     try:
         year = re.search(r"(19[0-9]{2})|(20[0-9]{2})", word)[0]
@@ -47,7 +33,6 @@ def is_year(word):
         return False
 
     return year
-
 
 def is_normal_word(word):
     try:
@@ -57,12 +42,13 @@ def is_normal_word(word):
 
     return True
 
-
 def process_words(words):
     for index, item in enumerate(words):
         words[index] = words[index].lower()
+
         can_be_link = False
         can_be_email = False
+
         try:
             if 'w.' in words[index] or "://" in words[index]:
                 can_be_link = True
@@ -79,6 +65,8 @@ def process_words(words):
             # print("Not email!! " + words[index])
             can_be_email = False
 
+        if can_be_email == False and can_be_link == False and len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
+            words[index] = "not_normal_word"
         if can_be_email == False and can_be_link == False and len(str(words[index])) > 100:
             new_word = list()
             new_word.append("long_word_100")
@@ -89,14 +77,11 @@ def process_words(words):
             new_word.append("long_word_50")
             words = words + new_word
             # print("LONG WORD " + words[index])
-        elif can_be_email == False and can_be_link == False and len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
-            words[index] = "not_normal_word"
+
 
         elif item.isalpha() == False:
             # print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
-
-
                 if len(words[index]) >= 1 + 4 + str(words[index]).startswith('$') and str(words[index])[
                     1].isnumeric():
                     words[index] = "$$$"
@@ -300,7 +285,7 @@ def build_model(x_train, y_train):
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=3)
+    model.fit(x_train, y_train, epochs=6)
     return model
 
 
