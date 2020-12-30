@@ -5,8 +5,9 @@ import os
 import sys
 from collections import Counter
 import re
+import json
 
-DICTIONARY_SIZE = 20000
+DICTIONARY_SIZE = 30000
 
 
 def find_spam_words(words):
@@ -60,39 +61,41 @@ def is_normal_word(word):
 def process_words(words):
     for index, item in enumerate(words):
         words[index] = words[index].lower()
-        if len(str(words[index])) > 100:
+        can_be_link = False
+        can_be_email = False
+        try:
+            if 'w.' in words[index] or "://" in words[index]:
+                can_be_link = True
+                re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
+        except:
+            # print("Not link!! " + words[index])
+            can_be_link = False
+
+        try:
+            if '@' in words[index]:
+                can_be_email = True
+                re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
+        except:
+            # print("Not email!! " + words[index])
+            can_be_email = False
+
+        if can_be_email == False and can_be_link == False and len(str(words[index])) > 100:
             new_word = list()
             new_word.append("long_word_100")
             words = words + new_word
             # print("LONG WORD " + words[index])
-        elif len(str(words[index])) > 50:
+        elif can_be_email == False and can_be_link == False and len(str(words[index])) > 50:
             new_word = list()
             new_word.append("long_word_50")
             words = words + new_word
             # print("LONG WORD " + words[index])
-        elif len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
+        elif can_be_email == False and can_be_link == False and len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
             words[index] = "not_normal_word"
 
         elif item.isalpha() == False:
             # print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
-                can_be_link = False
-                can_be_email = False
-                try:
-                    if 'w.' in words[index] or "://" in words[index]:
-                        can_be_link = True
-                        re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
-                except:
-                    # print("Not link!! " + words[index])
-                    can_be_link = False
 
-                try:
-                    if '@' in words[index]:
-                        can_be_email = True
-                        re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
-                except:
-                    #print("Not email!! " + words[index])
-                    can_be_email = False
 
                 if len(words[index]) >= 1 + 4 + str(words[index]).startswith('$') and str(words[index])[
                     1].isnumeric():
@@ -251,7 +254,7 @@ def make_dictionary(train_dir):
 
 
 
-
+    print("\n", flush=True)
     # print(new_dictionary)
     return new_dictionary
 
@@ -282,7 +285,7 @@ def extract_features(mail_dir, dictionary):
                             wordID = dictionary[word][0]
                             features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
             docID = docID + 1
-
+    print("\n", flush=True)
     return features_matrix, email_type
 
 
@@ -297,7 +300,7 @@ def build_model(x_train, y_train):
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=12)
+    model.fit(x_train, y_train, epochs=3)
     return model
 
 
@@ -309,7 +312,6 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
 
     nr_of_misses=0
     for i, file in enumerate(files):
-
         if predictions[i] >= 0.5:
             f.write(str(i) + ". " + file + "|inf" + " " + str(predictions[i]))
             if file.endswith(".cln"):
@@ -326,30 +328,50 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
     f.close()
     print("Misses: " + str(nr_of_misses))
 
+def classify_emails(mail_dir, model, x_test, output_file):
+    f = open(output_file, "w")
+    predictions = model.predict([x_test])
+    for i, file in enumerate(os.listdir(mail_dir)):
+        if predictions[i] >= 0.5:
+            f.write(file + "|inf")
+
+        elif predictions[i] < 0.5:
+            f.write(file + "|cln")
+        f.write("\n")
+    f.close()
+
 if len(sys.argv) == 1:
     print("Run it with arguments!")
-elif sys.argv[1] == "info":
-    print("Anti_Spam_Filter_SSOSM")
-    print("Haloca_Dorin")
-    print("PaleVader")
-    print("Version_0.1")
-elif sys.argv[1] == "train":
+elif sys.argv[1] == "-info":
+    f = open(sys.argv[2], "w")
+    f.write("Anti_Spam_Filter_SSOSM\n")
+    f.write("Haloca_Dorin\n")
+    f.write("PaleVader\n")
+    f.write("Version_1.0\n")
+    f.close()
+elif sys.argv[1] == "-scan":
+    dictionary=dict()
+    with open('dictionary.json', 'r') as fp:
+        dictionary=json.load(fp)
+    model=tf.keras.models.load_model("spam_filter.model")
+    x_test, y_test = extract_features(sys.argv[2], dictionary)
+    classify_emails(sys.argv[2], model, x_test, sys.argv[3])
+
+elif sys.argv[1] == "-train":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    # model = build_model(x_train, y_train)
-    # model.save("spam_filter.model")
+    model = build_model(x_train, y_train)
+    model.save("spam_filter.model")
 
-    f = open("dictionary.txt", "w")
-    f.write(str(dictionary))
-    f.close()
+    with open('dictionary.json', 'w') as fp:
+        json.dump(dictionary, fp)
 
-elif sys.argv[1] == "train+scan":
+elif sys.argv[1] == "-train+scan":
     verdict = "cln"
 
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features(sys.argv[2], dictionary)
-
     x_train = tf.keras.utils.normalize(x_train, axis=1)
     model = build_model(x_train, y_train)
 
