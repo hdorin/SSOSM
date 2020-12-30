@@ -7,7 +7,7 @@ from collections import Counter
 import re
 import json
 
-DICTIONARY_SIZE = 30000
+DICTIONARY_SIZE = 50000
 
 
 def is_time(word):
@@ -35,10 +35,20 @@ def is_year(word):
     return year
 
 def is_normal_word(word):
-    try:
-        re.search(r"[a-zA-Z0-9></]", word)[0]
-    except:
+    #try:
+    #    re.search(r"[a-z0-9></]", word)[0]
+    #except:
+    #    return False
+
+    nr=0
+    for item in word:
+        if item in "abcdefghijklmnopqrstuvwxyz":
+            nr = nr + 1
+        elif item in "0123456789":
+            nr = nr + 1
+    if nr == 0 or len(word)/nr > 4:
         return False
+
 
     return True
 
@@ -67,18 +77,26 @@ def process_words(words):
 
         if can_be_email == False and can_be_link == False and len(str(words[index])) > 2 and is_normal_word(words[index]) == False:
             words[index] = "not_normal_word"
-        if can_be_email == False and can_be_link == False and len(str(words[index])) > 100:
+        elif can_be_email == False and can_be_link == False and len(str(words[index])) > 150:
             new_word = list()
-            new_word.append("long_word_100")
+            new_word.append("vvv_long_word")
+            words = words + new_word
+            # print("LONG WORD " + words[index])
+        elif can_be_email == False and can_be_link == False and len(str(words[index])) > 100:
+            new_word = list()
+            new_word.append("vv_long_word")
+            words = words + new_word
+            # print("LONG WORD " + words[index])
+        elif can_be_email == False and can_be_link == False and len(str(words[index])) > 70:
+            new_word = list()
+            new_word.append("v_long_word")
             words = words + new_word
             # print("LONG WORD " + words[index])
         elif can_be_email == False and can_be_link == False and len(str(words[index])) > 50:
             new_word = list()
-            new_word.append("long_word_50")
+            new_word.append("long_word")
             words = words + new_word
             # print("LONG WORD " + words[index])
-
-
         elif item.isalpha() == False:
             # print("NON-ALPHA " + words[index])
             if words[index].isalpha() == False:
@@ -91,7 +109,7 @@ def process_words(words):
                     new_word = list()
                     new_word.append("$$$")
                     words = words + new_word
-                elif len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric() and  str(words[index]).startswith('$'):
+                elif len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
                     words[index] = "$$"
                 elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
                     words[index] = "$"
@@ -279,13 +297,12 @@ def build_model(x_train, y_train):
     model.add(tf.keras.layers.Flatten())
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    model.fit(x_train, y_train, epochs=6)
+    model.fit(x_train, y_train, epochs=4)
     return model
 
 
