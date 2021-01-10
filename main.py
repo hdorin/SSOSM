@@ -265,6 +265,28 @@ def make_dictionary(train_dir):
 def extract_features(mail_dir, dictionary):
     files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
     features_matrix = np.zeros((len(files), DICTIONARY_SIZE))
+    docID = 0
+    fileID = 0
+    print("\nExtracting features", end ="", flush=True)
+    for file in files:
+        print(".", end ="", flush=True)
+        fileID = fileID + 1
+        with open(file, encoding="Latin-1") as fi:
+            for i, line in enumerate(fi):
+                words = line.split()
+                process_words(words)
+                for word in words:
+                        if word in dictionary:
+                            wordID = dictionary[word][0]
+                            features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
+            docID = docID + 1
+    print("\n", flush=True)
+    return features_matrix
+
+
+def extract_features_train(mail_dir, dictionary):
+    files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
+    features_matrix = np.zeros((len(files), DICTIONARY_SIZE))
     email_type = np.zeros((len(files)))
     docID = 0
     fileID = 0
@@ -314,12 +336,12 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
 
     nr_of_misses=0
     for i, file in enumerate(files):
-        if predictions[i] >= 0.5:
+        if predictions[i] > 0.5:
             f.write(str(i) + ". " + file + "|inf" + " " + str(predictions[i]))
             if file.endswith(".cln"):
                 nr_of_misses = nr_of_misses +1
                 f.write("MISS!")
-        elif predictions[i] < 0.5:
+        elif predictions[i] <= 0.5:
             f.write(str(i) + ". " + file + "|cln" + " " + str(predictions[i]))
             if file.endswith(".inf"):
                 nr_of_misses = nr_of_misses +1
@@ -334,10 +356,10 @@ def classify_emails(mail_dir, model, x_test, output_file):
     f = open(output_file, "w")
     predictions = model.predict([x_test])
     for i, file in enumerate(os.listdir(mail_dir)):
-        if predictions[i] >= 0.5:
+        if predictions[i] > 0.5:
             f.write(file + "|inf")
 
-        elif predictions[i] < 0.5:
+        elif predictions[i] <= 0.5:
             f.write(file + "|cln")
         f.write("\n")
     f.close()
@@ -349,19 +371,19 @@ elif sys.argv[1] == "-info":
     f.write("Anti_Spam_Filter_SSOSM\n")
     f.write("Haloca_Dorin\n")
     f.write("PaleVader\n")
-    f.write("Version_1.0\n")
+    f.write("Version_1.1\n")
     f.close()
 elif sys.argv[1] == "-scan":
     dictionary=dict()
     with open('dictionary.json', 'r') as fp:
         dictionary=json.load(fp)
     model=tf.keras.models.load_model("spam_filter.model", compile=False)
-    x_test, y_test = extract_features(sys.argv[2], dictionary)
+    x_test = extract_features(sys.argv[2], dictionary)
     classify_emails(sys.argv[2], model, x_test, sys.argv[3])
 
 elif sys.argv[1] == "-train":
     dictionary = make_dictionary(sys.argv[2])
-    x_train, y_train = extract_features(sys.argv[2], dictionary)
+    x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
     model = build_model(x_train, y_train)
     model.save("spam_filter.model")
@@ -373,7 +395,7 @@ elif sys.argv[1] == "-train+scan":
     verdict = "cln"
 
     dictionary = make_dictionary(sys.argv[2])
-    x_train, y_train = extract_features(sys.argv[2], dictionary)
+    x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
     model = build_model(x_train, y_train)
 
