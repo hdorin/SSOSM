@@ -358,7 +358,6 @@ def classify_emails(mail_dir, model, x_test, output_file):
     for i, file in enumerate(os.listdir(mail_dir)):
         if predictions[i] > 0.5:
             f.write(file + "|inf")
-
         elif predictions[i] <= 0.5:
             f.write(file + "|cln")
         f.write("\n")
@@ -399,7 +398,7 @@ elif sys.argv[1] == "-train+scan":
     x_train = tf.keras.utils.normalize(x_train, axis=1)
     model = build_model(x_train, y_train)
 
-    x_test, y_test = extract_features(sys.argv[3], dictionary)
+    x_test, y_test = extract_features_train(sys.argv[3], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
     val_loss, val_acc = model.evaluate(x_test, y_test)
     classify_emails_train(sys.argv[3], model, x_test, sys.argv[4])
