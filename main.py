@@ -355,7 +355,7 @@ elif sys.argv[1] == "-scan":
     dictionary=dict()
     with open('dictionary.json', 'r') as fp:
         dictionary=json.load(fp)
-    model=tf.keras.models.load_model("spam_filter.model")
+    model=tf.keras.models.load_model("spam_filter.model", compile=False)
     x_test, y_test = extract_features(sys.argv[2], dictionary)
     classify_emails(sys.argv[2], model, x_test, sys.argv[3])
 
