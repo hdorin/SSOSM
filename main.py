@@ -59,8 +59,13 @@ def process_words(words):
     for index, item in enumerate(words):
         words[index] = words[index].lower()
 
+        if len(words[index]) <= 2:
+            words[index] = ' '
+            continue
         if words[index].isalpha() == True:
             continue
+
+
 
         can_be_link = False
         can_be_email = False
@@ -230,7 +235,7 @@ def process_words(words):
                 if str(words[index]).endswith(')'):
                     words[index] = words[index].replace(')', '')
                 words[index] = words[index].replace('-', ' ')
-                if words[index].isalpha() == False:
+                if len(words[index]) <= 2 or words[index].isalpha() == False:
                     words[index] = ' '
     return words
 
@@ -328,17 +333,18 @@ def build_model(x_train, y_train):
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
+    print("\n TIPPPPPP" + str(type(x_train)) + "\n ")
     model.fit(x_train, y_train, epochs=5)
     return model
 
 
 def classify_emails_train(mail_dir, model, x_test, output_file):
+    print("\n TIPPPPPP" + str(type(x_test)) + "\n ")
     f = open(output_file, "w")
-    predictions = model.predict([x_test])
-
+    predictions = model.predict(x_test)
     files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
-
     nr_of_misses = 0
+
     for i, file in enumerate(files):
         if predictions[i] > 0.5:
             f.write(str(i) + ". " + file + "|inf" + " " + str(predictions[i]))
@@ -358,8 +364,10 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
 
 
 def classify_emails(mail_dir, model, x_test, output_file):
+    print("\n TIPPPPPP" + str(type(x_test)) + "\n ")
     f = open(output_file, "w")
-    predictions = model.predict([x_test])
+    predictions = model.predict(x_test)
+
     for i, file in enumerate(os.listdir(mail_dir)):
         if predictions[i] > 0.5:
             f.write(file + "|inf")
@@ -376,7 +384,7 @@ elif sys.argv[1] == "-info":
     f.write("Anti_Spam_Filter_SSOSM\n")
     f.write("Haloca_Dorin\n")
     f.write("PaleVader\n")
-    f.write("Version_1.1\n")
+    f.write("Version_1.12\n")
     f.close()
 elif sys.argv[1] == "-scan":
     dictionary = dict()
