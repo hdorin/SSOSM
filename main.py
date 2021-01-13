@@ -392,12 +392,15 @@ elif sys.argv[1] == "-scan":
         dictionary = json.load(fp)
     model = tf.keras.models.load_model("spam_filter.model", compile=False)
     x_test = extract_features(sys.argv[2], dictionary)
+    x_test = tf.keras.utils.normalize(x_test, axis=1)
+    print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
     classify_emails(sys.argv[2], model, x_test, sys.argv[3])
 
 elif sys.argv[1] == "-train":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
+    print("\n TIPPPPPP - normalised" + str(type(x_train)) + "\n ")
     model = build_model(x_train, y_train)
     model.save("spam_filter.model")
 
@@ -410,10 +413,12 @@ elif sys.argv[1] == "-train+scan":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
+    print("\n TIPPPPPP - normalised_train" + str(type(x_train)) + "\n ")
     model = build_model(x_train, y_train)
 
     x_test, y_test = extract_features_train(sys.argv[3], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
+    print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
     val_loss, val_acc = model.evaluate(x_test, y_test)
     classify_emails_train(sys.argv[3], model, x_test, sys.argv[4])
     # print("loss: " + str(val_loss) + " - acc: " + str(val_acc))
