@@ -103,7 +103,7 @@ def process_words(words):
             new_word = list()
             new_word.append("v_long_word")
             words = words + new_word
-            # print("LONG WORD " + words[index])
+            # print("LONG WORD " + str(words))
         elif can_be_email == False and can_be_link == False and len(str(words[index])) > 50:
             new_word = list()
             new_word.append("long_word")
@@ -283,12 +283,16 @@ def extract_features(mail_dir, dictionary):
         with open(file, encoding="Latin-1") as fi:
             for i, line in enumerate(fi):
                 words = line.split()
-                process_words(words)
+                words=process_words(words)
                 for word in words:
                     if word in dictionary:
                         wordID = dictionary[word][0]
                         features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
+                if fileID == 7:
+                    print(words)
+                    print("\n")
             docID = docID + 1
+
     print("\n", flush=True)
     return features_matrix
 
@@ -313,11 +317,14 @@ def extract_features_train(mail_dir, dictionary):
         with open(file, encoding="Latin-1") as fi:
             for i, line in enumerate(fi):
                 words = line.split()
-                process_words(words)
+                words=process_words(words)
                 for word in words:
                     if word in dictionary:
                         wordID = dictionary[word][0]
                         features_matrix[docID, wordID] = features_matrix[docID, wordID] + words.count(word)
+                if fileID == 7:
+                    print(words)
+                    print("\n")
             docID = docID + 1
     print("\n", flush=True)
     return features_matrix, email_type
