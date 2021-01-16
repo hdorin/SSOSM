@@ -238,7 +238,6 @@ def make_dictionary(train_dir):
         with open(mail, encoding="Latin-1") as m:
             print(".", end="", flush=True)
             for i, line in enumerate(m):
-                # if i == 2:  # Body of email is only 3rd line of text file
                 words = line.split()
                 words = process_words(words)  # parse URL, remove non-alpha words
                 all_words += words
@@ -248,7 +247,7 @@ def make_dictionary(train_dir):
     dictionary = Counter(all_words)
     list_to_remove = dictionary.keys()
     for item in list(list_to_remove):
-        if len(item) == 1:
+        if len(item) <= 1: #caut spatiu si cuvinte nule
             del dictionary[item]
 
     dictionary = dictionary.most_common(DICTIONARY_SIZE)
@@ -317,7 +316,7 @@ def extract_features_train(mail_dir, dictionary):
 
 def build_model(x_train, y_train):
     model = tf.keras.models.Sequential()
-    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.Flatten(input_shape=(DICTIONARY_SIZE,)))
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
@@ -325,13 +324,13 @@ def build_model(x_train, y_train):
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
-    print("\n TIPPPPPP" + str(type(x_train)) + "\n ")
+    # print("\n TIPPPPPP" + str(type(x_train)) + "\n ")
     model.fit(x_train, y_train, epochs=5)
     return model
 
 
 def classify_emails_train(mail_dir, model, x_test, output_file):
-    print("\n TIPPPPPP" + str(type(x_test)) + "\n ")
+    # print("\n TIPPPPPP" + str(type(x_test)) + "\n ")
     f = open(output_file, "w")
     predictions = model.predict(x_test)
     files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
@@ -356,7 +355,7 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
 
 
 def classify_emails(mail_dir, model, x_test, output_file):
-    print("\n TIPPPPPP" + str(type(x_test)) + "\n ")
+    # print("\n TIPPPPPP" + str(type(x_test)) + "\n ")
     f = open(output_file, "w")
     predictions = model.predict(x_test)
 
@@ -376,25 +375,25 @@ elif sys.argv[1] == "-info":
     f.write("Anti_Spam_Filter_SSOSM\n")
     f.write("Haloca_Dorin\n")
     f.write("PaleVader\n")
-    f.write("Version_1.12\n")
+    f.write("Version_1.20\n")
     f.close()
 elif sys.argv[1] == "-scan":
     dictionary = dict()
     with open('dictionary.json', 'r') as fp:
         dictionary = json.load(fp)
-    model = tf.keras.models.load_model("spam_filter.model", compile=False)
+    model = tf.keras.models.load_model("spam_filter.h5",compile=True)
     x_test = extract_features(sys.argv[2], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
-    print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
+    # print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
     classify_emails(sys.argv[2], model, x_test, sys.argv[3])
 
 elif sys.argv[1] == "-train":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    print("\n TIPPPPPP - normalised" + str(type(x_train)) + "\n ")
+    # print("\n TIPPPPPP - normalised" + str(type(x_train)) + "\n ")
     model = build_model(x_train, y_train)
-    model.save("spam_filter.model")
+    model.save('spam_filter.h5', save_format='h5')
 
     with open('dictionary.json', 'w') as fp:
         json.dump(dictionary, fp)
