@@ -9,7 +9,7 @@ import json
 from shutil import copyfile
 
 DICTIONARY_SIZE = 7000
-DICTIONARY_RESERVED = 100 #Words selected by me
+DICTIONARY_RESERVED = 100  # Words selected by me
 
 
 def is_time(word):
@@ -58,6 +58,21 @@ def is_normal_word(word):
 
 
 def process_words(words):
+    if len(words)<1:
+        return words
+
+    allow_normal_words = False
+
+    if words[0].lower().startswith("subject"):
+
+        allow_normal_words = True
+        for index, item in enumerate(words):
+            words_list = item.split('?')
+            words[index] = ' '
+            for words_list_item in words_list:
+                new_word = list()
+                new_word.append(words_list_item)
+                words = words + new_word
     for index, item in enumerate(words):
         words[index] = words[index].lower()
 
@@ -119,7 +134,7 @@ def process_words(words):
             elif can_be_email == True:
                 matches = re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3}", words[index])
                 # print(">CONTINE email " + words[index])
-                words[index]=' '
+                words[index] = ' '
                 for match in matches:
                     new_word = list('')
                     new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", match)[0][1:])
@@ -227,8 +242,13 @@ def process_words(words):
                     words[index] = words[index].replace('(', '')
                 if str(words[index]).endswith(')'):
                     words[index] = words[index].replace(')', '')
-                words[index] = words[index].replace('-', ' ')
-                if len(words[index]) <= 2 or words[index].isalpha() == False:
+                words[index] = words[index].replace('-', '')
+
+                if len(words[index]) <= 2:
+                    words[index] = ' '
+                if allow_normal_words == True and is_normal_word(words[index]) == True:
+                    continue
+                if words[index].isalpha() == False:
                     words[index] = ' '
     return words
 
@@ -250,21 +270,19 @@ def make_dictionary(train_dir):
     dictionary = Counter(all_words)
     list_to_remove = dictionary.keys()
     for item in list(list_to_remove):
-        if len(item) <= 1: #caut spatiu si cuvinte nule
+        if len(item) <= 1:  # caut spatiu si cuvinte nule
             del dictionary[item]
 
-    dictionary = dictionary.most_common(DICTIONARY_SIZE-DICTIONARY_RESERVED)
-
+    dictionary = dictionary.most_common(DICTIONARY_SIZE - DICTIONARY_RESERVED)
 
     new_dictionary = dict()
     for i, item in enumerate(dictionary):
         new_dictionary[item[0]] = (i, item[1])
     with open("reserved_words.txt") as m:
         for i, line in enumerate(m):
-            line=line.rstrip('\n')
+            line = line.rstrip('\n')
             if line not in new_dictionary:
-                new_dictionary[line] = (DICTIONARY_SIZE-DICTIONARY_RESERVED+1+i, 1)
-
+                new_dictionary[line] = (DICTIONARY_SIZE - DICTIONARY_RESERVED + 1 + i, 1)
 
     print("\n", flush=True)
     # print(new_dictionary)
@@ -284,6 +302,7 @@ def extract_features(mail_dir, dictionary):
             for i, line in enumerate(fi):
                 words = line.split()
                 words = process_words(words)
+
                 for word in words:
                     if word != ' ' and word in dictionary:
                         wordID = dictionary[word][0]
@@ -315,6 +334,9 @@ def extract_features_train(mail_dir, dictionary):
             for i, line in enumerate(fi):
                 words = line.split()
                 words = process_words(words)
+                #if "1a65a9d8b274c155e141ce51f022e264.cln" in file:
+                #    print (words)
+                #   exit(0)
                 for word in words:
                     if word != ' ' and word in dictionary:
                         wordID = dictionary[word][0]
@@ -395,7 +417,7 @@ elif sys.argv[1] == "-scan":
     dictionary = dict()
     with open('dictionary.json', 'r') as fp:
         dictionary = json.load(fp)
-    model = tf.keras.models.load_model("spam_filter.h5",compile=True)
+    model = tf.keras.models.load_model("spam_filter.h5", compile=True)
     x_test = extract_features(sys.argv[2], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
     # print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
@@ -405,7 +427,7 @@ elif sys.argv[1] == "-scan_prob":
     dictionary = dict()
     with open('dictionary.json', 'r') as fp:
         dictionary = json.load(fp)
-    model = tf.keras.models.load_model("spam_filter.h5",compile=True)
+    model = tf.keras.models.load_model("spam_filter.h5", compile=True)
     x_test = extract_features(sys.argv[2], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
     # print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
