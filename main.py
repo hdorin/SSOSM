@@ -252,6 +252,37 @@ def process_words(words):
                     words[index] = ' '
     return words
 
+def test_file_size(words,mail):
+    if os.path.getsize(mail) / 1000 > 300:
+        new_word = list()
+        new_word.append("vvvv_big_file")
+        words = words + new_word
+    if os.path.getsize(mail) / 1000 > 200:
+        new_word = list()
+        new_word.append("vvv_big_file")
+        words = words + new_word
+    if os.path.getsize(mail) / 1000 > 150:
+        new_word = list()
+        new_word.append("vv_big_file")
+        words = words + new_word
+    if os.path.getsize(mail) / 1000 > 100:
+        new_word = list()
+        new_word.append("v_big_file")
+        words = words + new_word
+    elif os.path.getsize(mail) / 1000 > 50:
+        new_word = list()
+        new_word.append("big_file")
+        words = words + new_word
+    elif os.path.getsize(mail) < 1500:
+        new_word = list()
+        new_word.append("small_file")
+        words = words + new_word
+    elif os.path.getsize(mail) < 1000:
+        new_word = list()
+        new_word.append("v_small_file")
+        words = words + new_word
+
+    return words
 
 def make_dictionary(train_dir):
     emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
@@ -263,9 +294,16 @@ def make_dictionary(train_dir):
             for i, line in enumerate(m):
                 words = line.split()
                 words = process_words(words)  # parse URL, remove non-alpha words
+
+                if i == 0:
+                    words = test_file_size(words,mail)
                 all_words += words
                 # if  find_spam_words(words) != None:
                 #    print(find_spam_words(words))
+            #if "4508455974c2374f6fba2f2d9f521181.cln" in mail:
+            #    print(all_words)
+            #    exit(0)
+
 
     dictionary = Counter(all_words)
     list_to_remove = dictionary.keys()
@@ -303,6 +341,9 @@ def extract_features(mail_dir, dictionary):
                 words = line.split()
                 words = process_words(words)
 
+                if i==0:
+                    words = test_file_size(words,file)
+
                 for word in words:
                     if word != ' ' and word in dictionary:
                         wordID = dictionary[word][0]
@@ -334,9 +375,9 @@ def extract_features_train(mail_dir, dictionary):
             for i, line in enumerate(fi):
                 words = line.split()
                 words = process_words(words)
-                #if "1a65a9d8b274c155e141ce51f022e264.cln" in file:
-                #    print (words)
-                #   exit(0)
+                if i == 0:
+                    words = test_file_size(words,file)
+
                 for word in words:
                     if word != ' ' and word in dictionary:
                         wordID = dictionary[word][0]
