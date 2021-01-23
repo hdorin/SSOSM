@@ -10,6 +10,7 @@ from shutil import copyfile
 
 DICTIONARY_SIZE = 7000
 DICTIONARY_RESERVED = 100  # Words selected by me
+SPECIAL_WORDS = ["base64"]
 
 
 def is_time(word):
@@ -23,7 +24,7 @@ def is_time(word):
 
 def is_date(word):
     try:
-        date = re.search(r"[0-9]{1,4}(/| )[0-9]{1,4}(/| )[0-9]{1,4}", word)[0]
+        date = re.search(r"[0-9]{1,4}(/| |-)[0-9]{1,4}(/| |-)[0-9]{1,4}", word)[0]
     except:
         return False
 
@@ -57,17 +58,23 @@ def is_normal_word(word):
     return True
 
 
-def process_words(words):
+
+
+def process_words(words,debug=False):
     if len(words)<1:
         return words
 
     allow_normal_words = False
-
+    if debug == True:
+        print("1:"+str(words))
     if words[0].lower().startswith("subject"):
-
+        words[0]=words[0][8:]
+        if len(words[0])==0 and len(words)==1:
+            words[0]="no_subject"
+            return words
         allow_normal_words = True
         for index, item in enumerate(words):
-            words_list = item.split('?')
+            words_list = re.split('(\?|_|=)', item)
             words[index] = ' '
             for words_list_item in words_list:
                 new_word = list()
@@ -79,7 +86,7 @@ def process_words(words):
         if len(words[index]) <= 2:
             words[index] = ' '
             continue
-        if words[index].isalpha() == True:
+        if words[index].isalpha() == True or words[index] in SPECIAL_WORDS:
             continue
 
         can_be_link = False
@@ -96,10 +103,13 @@ def process_words(words):
         try:
             if '@' in words[index]:
                 can_be_email = True
-                re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3}", words[index])[0]
+                re.search(r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})", words[index])[0]
         except:
             # print("Not email!! " + words[index])
             can_be_email = False
+
+        if debug == True:
+            print("2.email:" + str(can_be_email))
 
         if can_be_email == False and can_be_link == False and len(str(words[index])) > 2 and is_normal_word(
                 words[index]) == False:
@@ -118,51 +128,29 @@ def process_words(words):
             # print("LONG WORD " + words[index])
         elif words[index].isalpha() == False:
             # print("NON-ALPHA " + words[index])
-            if len(words[index]) >= 1 + 4 + str(words[index]).startswith('$') and str(words[index])[
-                1].isnumeric():
-                words[index] = "$$$"
-            elif len(words[index]) >= 4 + 4 and str(words[index]).startswith('usd$') and str(words[index])[
-                1].isnumeric():
-                words[index] = "usd$$$"
-                new_word = list()
-                new_word.append("$$$")
-                words = words + new_word
-            elif len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
-                words[index] = "$$"
-            elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
-                words[index] = "$"
-            elif can_be_email == True:
-                matches = re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3}", words[index])
+            if can_be_email == True:
+                #Sa gaseasca adresa cu xxxx... si sa aleaga doar primii xx dupa ., nu xxa, sau ceva de genul
+                matches = re.findall(r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})", words[index])
+
+                if debug == True:
+                    print("3.email:" + str(matches))
+
                 # print(">CONTINE email " + words[index])
                 words[index] = ' '
                 for match in matches:
+                    match=match[0]
+                    #if "xxx" in match:
+                        #print("XXX:" + match)
+                        #print(words[index])
+
                     new_word = list('')
-                    new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", match)[0][1:])
+                    new_word.append(re.search(r"(@[x\-+_]+\.[x]{2,3}|@[a-z0-9\-+_]+\.[a-z]{2,3})", match)[0][1:])
                     words = words + new_word
 
                     new_word = list('')
                     new_word.append(re.search(r"[a-z0-9\.\-+_]+@", match)[0][0:-1])
                     words = words + new_word
                     # print("SENDER + " + new_word[0] + " _>" + words[index])
-
-            elif ':' in words[index] and is_time(words[index]) != False:
-                words[index] = is_time(words[index])
-                new_word = list('')
-                new_word.append("found_time")
-                words = words + new_word
-                # print("Found time!!! " + words[index])
-            elif len(str(words[index])) == 4 and is_year(words[index]) != False:
-                words[index] = is_year(words[index])
-                new_word = list('')
-                new_word.append("found_year")
-                words = words + new_word
-                # print("Found year!!! " + words[index])
-            elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(words[index]) != False:
-                words[index] = is_date(words[index])
-                new_word = list('')
-                new_word.append("found_year")
-                words = words + new_word
-                # print("Found year!!! " + words[index])
             elif can_be_link == True:
                 # print(">CONTINE link " + words[index])
                 words[index] = re.search(r"(h?t?t?p?s?://)?(w{0,3}\.)?[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
@@ -214,9 +202,42 @@ def process_words(words):
                     new_word = list()
                     new_word.append(words[index].split('.')[-2] + "." + words[index].split('.')[-1])
                     words = words + new_word
-            # elif str(words[index]).startswith('<') and False:
-            #    print(">GASIT tag " + item)
-            #    words[index] = ' '
+            elif len(words[index]) >= 1 + 4 + str(words[index]).startswith('$') and str(words[index])[
+                1].isnumeric():
+                words[index] = "$$$"
+            elif len(words[index]) >= 4 + 4 and str(words[index]).startswith('usd$') and str(words[index])[
+                1].isnumeric():
+                words[index] = "usd$$$"
+                new_word = list()
+                new_word.append("$$$")
+                words = words + new_word
+            elif len(words[index]) >= 1 + 2 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
+                words[index] = "$$"
+            elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
+                words[index] = "$"
+
+            elif ':' in words[index] and is_time(words[index]) != False:
+                words[index] = is_time(words[index])
+                new_word = list('')
+                new_word.append("found_time")
+                words = words + new_word
+                # print("Found time!!! " + words[index])
+            elif len(str(words[index])) == 4 and is_year(words[index]) != False:
+                words[index] = is_year(words[index])
+                new_word = list('')
+                new_word.append("found_year")
+                words = words + new_word
+                # print("Found year!!! " + words[index])
+            elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(words[index]) != False:
+                words[index] = is_date(words[index])
+                new_word = list('')
+                new_word.append("found_date")
+                words = words + new_word
+                # print("Found year!!! " + words[index])
+
+            elif str(words[index]).startswith('<'):
+                #(">GASIT tag " + item)
+                words[index] = 'html_tag'
             else:
                 if str(words[index]).endswith('.'):
                     words[index] = words[index].replace('.', '')
@@ -252,6 +273,53 @@ def process_words(words):
                     words[index] = ' '
     return words
 
+def make_dictionary(train_dir):
+    emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
+    all_words = []
+    print("Making dictionary", end="", flush=True)
+    for mail in emails:
+        with open(mail, encoding="Latin-1") as m:
+            print(".", end="", flush=True)
+            for i, line in enumerate(m):
+                words = line.split()
+                if "49ef4d5e876ee65f251426dbba5ba249.inf" in mail:
+                    words = process_words(words,True)  # parse URL, remove non-alpha words
+                    print(words)
+
+                else:
+                    words = process_words(words)  # parse URL, remove non-alpha words
+                if i == 0:
+                    words = test_file_size(words,mail)
+
+
+                all_words += words
+                # if  find_spam_words(words) != None:
+                #    print(find_spam_words(words))
+
+
+
+    dictionary = Counter(all_words)
+    list_to_remove = dictionary.keys()
+    for item in list(list_to_remove):
+        if len(item) <= 1:  # caut spatiu si cuvinte nule
+            del dictionary[item]
+
+    dictionary = dictionary.most_common(DICTIONARY_SIZE - DICTIONARY_RESERVED)
+
+    new_dictionary = dict()
+    for i, item in enumerate(dictionary):
+        new_dictionary[item[0]] = (i, item[1])
+    with open("reserved_words.txt") as m:
+        for i, line in enumerate(m):
+            line = line.rstrip('\n')
+            if line not in new_dictionary:
+                new_dictionary[line] = (DICTIONARY_SIZE - DICTIONARY_RESERVED + 1 + i, 1)
+
+    print("\n", flush=True)
+    # print(new_dictionary)
+    return new_dictionary
+
+
 def test_file_size(words,mail):
     if os.path.getsize(mail) / 1000 > 300:
         new_word = list()
@@ -284,47 +352,7 @@ def test_file_size(words,mail):
 
     return words
 
-def make_dictionary(train_dir):
-    emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
-    all_words = []
-    print("Making dictionary", end="", flush=True)
-    for mail in emails:
-        with open(mail, encoding="Latin-1") as m:
-            print(".", end="", flush=True)
-            for i, line in enumerate(m):
-                words = line.split()
-                words = process_words(words)  # parse URL, remove non-alpha words
 
-                if i == 0:
-                    words = test_file_size(words,mail)
-                all_words += words
-                # if  find_spam_words(words) != None:
-                #    print(find_spam_words(words))
-            #if "4508455974c2374f6fba2f2d9f521181.cln" in mail:
-            #    print(all_words)
-            #    exit(0)
-
-
-    dictionary = Counter(all_words)
-    list_to_remove = dictionary.keys()
-    for item in list(list_to_remove):
-        if len(item) <= 1:  # caut spatiu si cuvinte nule
-            del dictionary[item]
-
-    dictionary = dictionary.most_common(DICTIONARY_SIZE - DICTIONARY_RESERVED)
-
-    new_dictionary = dict()
-    for i, item in enumerate(dictionary):
-        new_dictionary[item[0]] = (i, item[1])
-    with open("reserved_words.txt") as m:
-        for i, line in enumerate(m):
-            line = line.rstrip('\n')
-            if line not in new_dictionary:
-                new_dictionary[line] = (DICTIONARY_SIZE - DICTIONARY_RESERVED + 1 + i, 1)
-
-    print("\n", flush=True)
-    # print(new_dictionary)
-    return new_dictionary
 
 
 def extract_features(mail_dir, dictionary):
