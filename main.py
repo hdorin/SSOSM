@@ -77,9 +77,14 @@ def process_words(words,debug=False):
             words_list = re.split('(\?|_|=)', item)
             words[index] = ' '
             for words_list_item in words_list:
-                new_word = list()
-                new_word.append(words_list_item)
-                words = words + new_word
+                if len(words_list_item)>1:
+                    new_word = list()
+                    new_word.append("subject:"+words_list_item)
+                    words = words + new_word
+
+                    new_word = list()
+                    new_word.append(words_list_item)
+                    words = words + new_word
     for index, item in enumerate(words):
         words[index] = words[index].lower()
 
@@ -282,15 +287,19 @@ def make_dictionary(train_dir):
             print(".", end="", flush=True)
             for i, line in enumerate(m):
                 words = line.split()
-                if "49ef4d5e876ee65f251426dbba5ba249.inf" in mail:
-                    words = process_words(words,True)  # parse URL, remove non-alpha words
-                    print(words)
+                words = process_words(words)  # parse URL, remove non-alpha words
+                #if "488534c8a8ff3fd9d7b3fe061a181c20.inf" in mail:
+                    #words = process_words(words,True)  # parse URL, remove non-alpha words
 
-                else:
-                    words = process_words(words)  # parse URL, remove non-alpha words
+                #print(words)
+                #    exit(0)
+                #else:
+
                 if i == 0:
                     words = test_file_size(words,mail)
-
+                #if '2ca488083d53aa450085685ca4a48674' in mail:
+                #    print(words)
+                #    exit(0)
 
                 all_words += words
                 # if  find_spam_words(words) != None:
@@ -427,7 +436,7 @@ def build_model(x_train, y_train):
                   metrics=['accuracy'])
 
     # print("\n TIPPPPPP" + str(type(x_train)) + "\n ")
-    model.fit(x_train, y_train, epochs=5)
+    model.fit(x_train, y_train, epochs=7)
     return model
 
 
@@ -519,12 +528,12 @@ elif sys.argv[1] == "-train+scan":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    print("\n TIPPPPPP - normalised_train" + str(type(x_train)) + "\n ")
+    #print("\n TIPPPPPP - normalised_train" + str(type(x_train)) + "\n ")
     model = build_model(x_train, y_train)
 
     x_test, y_test = extract_features_train(sys.argv[3], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
-    print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
+    #print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
     val_loss, val_acc = model.evaluate(x_test, y_test)
     classify_emails_train(sys.argv[3], model, x_test, sys.argv[4])
     # print("loss: " + str(val_loss) + " - acc: " + str(val_acc))
