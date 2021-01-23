@@ -6,8 +6,10 @@ import sys
 from collections import Counter
 import re
 import json
+from shutil import copyfile
 
-DICTIONARY_SIZE = 6000
+DICTIONARY_SIZE = 7000
+DICTIONARY_RESERVED = 100 #Words selected by me
 
 
 def is_time(word):
@@ -79,7 +81,7 @@ def process_words(words):
         try:
             if '@' in words[index]:
                 can_be_email = True
-                re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
+                re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3}", words[index])[0]
         except:
             # print("Not email!! " + words[index])
             can_be_email = False
@@ -115,17 +117,18 @@ def process_words(words):
             elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
                 words[index] = "$"
             elif can_be_email == True:
-                words[index] = re.search(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0]
+                matches = re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3}", words[index])
                 # print(">CONTINE email " + words[index])
+                words[index]=' '
+                for match in matches:
+                    new_word = list('')
+                    new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", match)[0][1:])
+                    words = words + new_word
 
-                new_word = list('')
-                new_word.append(re.search(r"@[a-z0-9\.\-+_]+\.[a-z]+", words[index])[0][1:])
-                words = words + new_word
-
-                new_word = list('')
-                new_word.append(re.search(r"[a-z0-9\.\-+_]+@", words[index])[0][0:-1])
-                words = words + new_word
-                # print("SENDER + " + new_word[0] + " _>" + words[index])
+                    new_word = list('')
+                    new_word.append(re.search(r"[a-z0-9\.\-+_]+@", match)[0][0:-1])
+                    words = words + new_word
+                    # print("SENDER + " + new_word[0] + " _>" + words[index])
 
             elif ':' in words[index] and is_time(words[index]) != False:
                 words[index] = is_time(words[index])
@@ -250,10 +253,18 @@ def make_dictionary(train_dir):
         if len(item) <= 1: #caut spatiu si cuvinte nule
             del dictionary[item]
 
-    dictionary = dictionary.most_common(DICTIONARY_SIZE)
+    dictionary = dictionary.most_common(DICTIONARY_SIZE-DICTIONARY_RESERVED)
+
+
     new_dictionary = dict()
     for i, item in enumerate(dictionary):
         new_dictionary[item[0]] = (i, item[1])
+    with open("reserved_words.txt") as m:
+        for i, line in enumerate(m):
+            line=line.rstrip('\n')
+            if line not in new_dictionary:
+                new_dictionary[line] = (DICTIONARY_SIZE-DICTIONARY_RESERVED+1+i, 1)
+
 
     print("\n", flush=True)
     # print(new_dictionary)
@@ -317,8 +328,8 @@ def extract_features_train(mail_dir, dictionary):
 def build_model(x_train, y_train):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Flatten(input_shape=(DICTIONARY_SIZE,)))
-    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(256, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(512, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(512, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
@@ -342,11 +353,14 @@ def classify_emails_train(mail_dir, model, x_test, output_file):
             if file.endswith(".cln"):
                 nr_of_misses = nr_of_misses + 1
                 f.write("MISS!")
+                copyfile(file, os.path.join("Problem", file.split('\\')[-1]))
         elif predictions[i] <= 0.5:
             f.write(str(i) + ". " + file + "|cln" + " " + str(predictions[i]))
             if file.endswith(".inf"):
                 nr_of_misses = nr_of_misses + 1
                 f.write("MISS!")
+                print(file)
+                copyfile(file, os.path.join("Problem", file.split('\\')[-1]))
         else:
             f.write("Classification error!")
         f.write("\n")
@@ -387,6 +401,16 @@ elif sys.argv[1] == "-scan":
     # print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
     classify_emails(sys.argv[2], model, x_test, sys.argv[3])
 
+elif sys.argv[1] == "-scan_prob":
+    dictionary = dict()
+    with open('dictionary.json', 'r') as fp:
+        dictionary = json.load(fp)
+    model = tf.keras.models.load_model("spam_filter.h5",compile=True)
+    x_test = extract_features(sys.argv[2], dictionary)
+    x_test = tf.keras.utils.normalize(x_test, axis=1)
+    # print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
+    classify_emails_train(sys.argv[2], model, x_test, sys.argv[3])
+
 elif sys.argv[1] == "-train":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features_train(sys.argv[2], dictionary)
@@ -418,6 +442,8 @@ elif sys.argv[1] == "-train+scan":
     f.write(str(dictionary))
     f.close()
 
+else:
+    print("Invalid argument!")
     # f_read.close()
     # if verdict == "inf":
     # print(os.path.join(sys.argv[2], file + "|" + verdict))
