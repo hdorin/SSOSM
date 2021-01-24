@@ -86,3 +86,5 @@ subject:ubuntu
 ubuntu
 subject:manual
 manual
+unsubscribe
+papy

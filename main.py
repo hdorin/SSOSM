@@ -9,7 +9,7 @@ import json
 from shutil import copyfile
 import base64
 
-DICTIONARY_SIZE = 9000
+DICTIONARY_SIZE = 7000
 DICTIONARY_RESERVED = 100  # Words selected by me
 SPECIAL_WORDS = ["base64", "hi!", "hi!!", "hi!!!", "subject:hi!", "subject:hi!!",
                  "subject:hi!!!"]  # Avoids processing (symbols removal etc.)
@@ -74,7 +74,7 @@ def process_words(words, debug=False):
             return words
         allow_normal_words = True
         for index, item in enumerate(words):
-            words_list = re.split('(\?|_|=)', item)
+            words_list = re.split('(\?|_|=|[|])', item)
             words[index] = ' '
             for words_list_item in words_list:
                 if len(words_list_item) > 1:
@@ -243,28 +243,11 @@ def process_words(words, debug=False):
             elif len(words[index]) >= 1 + 1 and str(words[index])[1].isnumeric() and str(words[index]).startswith('$'):
                 words[index] = "$"
 
-            elif ':' in words[index] and is_time(words[index]) != False:
-                words[index] = is_time(words[index])
-                new_word = list('')
-                new_word.append("found_time")
-                words = words + new_word
-                # print("Found time!!! " + words[index])
-            elif len(str(words[index])) == 4 and is_year(words[index]) != False:
-                words[index] = is_year(words[index])
-                new_word = list('')
-                new_word.append("found_year")
-                words = words + new_word
-                # print("Found year!!! " + words[index])
-            elif len(str(words[index])) > 2 and str(words[index])[0:2].isnumeric() and is_date(words[index]) != False:
-                words[index] = is_date(words[index])
-                new_word = list('')
-                new_word.append("found_date")
-                words = words + new_word
-                # print("Found year!!! " + words[index])
 
-            elif str(words[index]).startswith('<'):
+
+            #elif str(words[index]).startswith('<'):
                 # (">GASIT tag " + item)
-                words[index] = 'html_tag'
+            #    words[index] = 'html_tag'
             else:
                 if str(words[index]).endswith('.'):
                     words[index] = words[index].replace('.', '')
@@ -307,11 +290,8 @@ def convert_to_base64(string):
         decoded = base64.b64decode(string)
         decoded=str(decoded)[2:-1]
 
-        decoded=decoded.replace('\\xef','')
-        decoded=decoded.replace('\\xbb','')
-        decoded=decoded.replace('\\xbf','')
-        decoded=decoded.replace('\\n','')
-        decoded=decoded.replace('\\r','')
+        decoded=decoded.replace('\\xef\\xbb\\xbf','')
+        decoded=decoded.replace('\\r\\n','')
         return decoded
 
     except:
@@ -347,10 +327,10 @@ def make_dictionary(train_dir):
                 else:
                     if base64 == True:
                         base64 = False
-                        #if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
-                        #    print(base64_string)
+                        if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                            print(base64_string)
                         words = words + process_words(base64_string.split())
-                #if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                #if "966f357541c963f500acabb0010d5c42" in mail:
                 #    print (words)
 
                 #if "55fa89ceceb5f74a1e3e602b0415c57c.inf" in mail:
