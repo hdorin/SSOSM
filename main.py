@@ -307,11 +307,11 @@ def convert_to_base64(string):
         decoded = base64.b64decode(string)
         decoded=str(decoded)[2:-1]
 
-        decoded.replace('\xef','')
-        decoded.replace('\xbb','')
-        decoded.replace('\xbf','')
-        decoded.replace('\\n','')
-        decoded.replace('\r','')
+        decoded=decoded.replace('\\xef','')
+        decoded=decoded.replace('\\xbb','')
+        decoded=decoded.replace('\\xbf','')
+        decoded=decoded.replace('\\n','')
+        decoded=decoded.replace('\\r','')
         return decoded
 
     except:
@@ -331,8 +331,8 @@ def make_dictionary(train_dir):
             base64_string = str()
             for i, line in enumerate(m):
                 words = line.split()
-                if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
-                    print(words)
+                #if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                #    print(words)
                 words = process_words(words)  # parse URL, remove non-alpha words
                 if words == "---base64":
                     #print("ORIGINAL:"+str(line.split()))
@@ -347,14 +347,11 @@ def make_dictionary(train_dir):
                 else:
                     if base64 == True:
                         base64 = False
-                        if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
-                            print(base64_string)
-                            new_words = list()
-                            new_words.append(process_words(base64_string))
-                            words = words + new_words
-
-                if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
-                    print (words)
+                        #if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                        #    print(base64_string)
+                        words = words + process_words(base64_string.split())
+                #if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                #    print (words)
 
                 #if "55fa89ceceb5f74a1e3e602b0415c57c.inf" in mail:
                 #    words = process_words(words, True)  # parse URL, remove non-alpha words
@@ -438,9 +435,22 @@ def extract_features(mail_dir, dictionary):
         print(".", end="", flush=True)
         fileID = fileID + 1
         with open(file, encoding="Latin-1") as fi:
+            base64 = False
+            base64_string = str()
             for i, line in enumerate(fi):
                 words = line.split()
-                words = process_words(words)
+                words = process_words(words)  # parse URL, remove non-alpha words
+                if words == "---base64":
+                    if base64 == False:
+                        base64 = True
+                        base64_string = convert_to_base64(line.split()[0])
+                        words = ' '
+                    else:
+                        base64_string = base64_string + convert_to_base64(line.split()[0])
+                else:
+                    if base64 == True:
+                        base64 = False
+                        words = words + process_words(base64_string.split())
 
                 if i == 0:
                     words = test_file_size(words, file)
@@ -473,9 +483,23 @@ def extract_features_train(mail_dir, dictionary):
             exit(-1)
         fileID = fileID + 1
         with open(file, encoding="Latin-1") as fi:
+            print(".", end="", flush=True)
+            base64 = False
+            base64_string = str()
             for i, line in enumerate(fi):
                 words = line.split()
-                words = process_words(words)
+                words = process_words(words)  # parse URL, remove non-alpha words
+                if words == "---base64":
+                    if base64 == False:
+                        base64 = True
+                        base64_string = convert_to_base64(line.split()[0])
+                        words = ' '
+                    else:
+                        base64_string = base64_string + convert_to_base64(line.split()[0])
+                else:
+                    if base64 == True:
+                        base64 = False
+                        words = words + process_words(base64_string.split())
                 if i == 0:
                     words = test_file_size(words, file)
 
@@ -492,15 +516,15 @@ def extract_features_train(mail_dir, dictionary):
 def build_model(x_train, y_train):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Flatten(input_shape=(DICTIONARY_SIZE,)))
-    model.add(tf.keras.layers.Dense(320, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(320, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(300, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(300, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
     # print("\n TIPPPPPP" + str(type(x_train)) + "\n ")
-    model.fit(x_train, y_train, epochs=5)
+    model.fit(x_train, y_train, epochs=3)
     return model
 
 
@@ -553,7 +577,7 @@ elif sys.argv[1] == "-info":
     f.write("Anti_Spam_Filter_SSOSM\n")
     f.write("Haloca_Dorin\n")
     f.write("PaleVader\n")
-    f.write("Version_1.20\n")
+    f.write("Version_2.00\n")
     f.close()
 elif sys.argv[1] == "-scan":
     dictionary = dict()
