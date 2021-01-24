@@ -7,10 +7,12 @@ from collections import Counter
 import re
 import json
 from shutil import copyfile
+import base64
 
-DICTIONARY_SIZE = 7000
+DICTIONARY_SIZE = 9000
 DICTIONARY_RESERVED = 100  # Words selected by me
-SPECIAL_WORDS = ["base64"]
+SPECIAL_WORDS = ["base64", "hi!", "hi!!", "hi!!!", "subject:hi!", "subject:hi!!",
+                 "subject:hi!!!"]  # Avoids processing (symbols removal etc.)
 
 
 def is_time(word):
@@ -24,7 +26,7 @@ def is_time(word):
 
 def is_date(word):
     try:
-        date = re.search(r"[0-9]{1,4}(/| |-)[0-9]{1,4}(/| |-)[0-9]{1,4}", word)[0]
+        date = re.search(r"[0-9]{1,4}(/| |-|.)[0-9]{1,4}(/| |-|.)[0-9]{1,4}", word)[0]
     except:
         return False
 
@@ -58,33 +60,51 @@ def is_normal_word(word):
     return True
 
 
-
-
-def process_words(words,debug=False):
-    if len(words)<1:
+def process_words(words, debug=False):
+    if len(words) < 1:
         return words
 
     allow_normal_words = False
     if debug == True:
-        print("1:"+str(words))
+        print("1:" + str(words))
     if words[0].lower().startswith("subject"):
-        words[0]=words[0][8:]
-        if len(words[0])==0 and len(words)==1:
-            words[0]="no_subject"
+        words[0] = words[0][8:]
+        if len(words[0]) == 0 and len(words) == 1:
+            words[0] = "no_subject"
             return words
         allow_normal_words = True
         for index, item in enumerate(words):
             words_list = re.split('(\?|_|=)', item)
             words[index] = ' '
             for words_list_item in words_list:
-                if len(words_list_item)>1:
+                if len(words_list_item) > 1:
                     new_word = list()
-                    new_word.append("subject:"+words_list_item)
+                    new_word.append("subject:" + words_list_item)
                     words = words + new_word
 
                     new_word = list()
                     new_word.append(words_list_item)
                     words = words + new_word
+    elif len(words)==1 and len(words[0])==76:
+        #print("BASE64:"+words[0])
+        try:
+            decoded=base64.b64decode(words[0][:4])
+            if str(base64.b64encode(decoded))[2:-1] == words[0][:4]: #Shorter test to speed up the process
+                decoded=base64.b64decode(words[0])
+                if str(base64.b64encode(decoded))[2:-1] == words[0]:
+                    #words[0]=str(decoded)[2:-1]
+                    return "---base64"
+                    #print("DECODED:" + str(decoded)[2:-1])
+                    #print("ENCODED:" + str(base64.b64encode(decoded))[2:-1])
+
+        except:
+            #print("ERROR")
+            #print('')
+            pass
+
+
+
+
     for index, item in enumerate(words):
         words[index] = words[index].lower()
 
@@ -108,7 +128,8 @@ def process_words(words,debug=False):
         try:
             if '@' in words[index]:
                 can_be_email = True
-                re.search(r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})", words[index])[0]
+                re.search(r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})",
+                          words[index])[0]
         except:
             # print("Not email!! " + words[index])
             can_be_email = False
@@ -134,8 +155,9 @@ def process_words(words,debug=False):
         elif words[index].isalpha() == False:
             # print("NON-ALPHA " + words[index])
             if can_be_email == True:
-                #Sa gaseasca adresa cu xxxx... si sa aleaga doar primii xx dupa ., nu xxa, sau ceva de genul
-                matches = re.findall(r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})", words[index])
+                # Sa gaseasca adresa cu xxxx... si sa aleaga doar primii xx dupa ., nu xxa, sau ceva de genul
+                matches = re.findall(
+                    r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})", words[index])
 
                 if debug == True:
                     print("3.email:" + str(matches))
@@ -143,10 +165,10 @@ def process_words(words,debug=False):
                 # print(">CONTINE email " + words[index])
                 words[index] = ' '
                 for match in matches:
-                    match=match[0]
-                    #if "xxx" in match:
-                        #print("XXX:" + match)
-                        #print(words[index])
+                    match = match[0]
+                    # if "xxx" in match:
+                    # print("XXX:" + match)
+                    # print(words[index])
 
                     new_word = list('')
                     new_word.append(re.search(r"(@[x\-+_]+\.[x]{2,3}|@[a-z0-9\-+_]+\.[a-z]{2,3})", match)[0][1:])
@@ -241,7 +263,7 @@ def process_words(words,debug=False):
                 # print("Found year!!! " + words[index])
 
             elif str(words[index]).startswith('<'):
-                #(">GASIT tag " + item)
+                # (">GASIT tag " + item)
                 words[index] = 'html_tag'
             else:
                 if str(words[index]).endswith('.'):
@@ -278,34 +300,78 @@ def process_words(words,debug=False):
                     words[index] = ' '
     return words
 
+
+def convert_to_base64(string):
+    # print("BASE64:"+words[0])
+    try:
+        decoded = base64.b64decode(string)
+        decoded=str(decoded)[2:-1]
+
+        decoded.replace('\xef','')
+        decoded.replace('\xbb','')
+        decoded.replace('\xbf','')
+        decoded.replace('\\n','')
+        decoded.replace('\r','')
+        return decoded
+
+    except:
+        # print("ERROR")
+        # print('')
+        return "ERROR"
+
 def make_dictionary(train_dir):
     emails = [os.path.join(train_dir, f) for f in os.listdir(train_dir)]
     all_words = []
     print("Making dictionary", end="", flush=True)
+
     for mail in emails:
         with open(mail, encoding="Latin-1") as m:
             print(".", end="", flush=True)
+            base64 = False
+            base64_string = str()
             for i, line in enumerate(m):
                 words = line.split()
+                if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                    print(words)
                 words = process_words(words)  # parse URL, remove non-alpha words
-                #if "488534c8a8ff3fd9d7b3fe061a181c20.inf" in mail:
-                    #words = process_words(words,True)  # parse URL, remove non-alpha words
+                if words == "---base64":
+                    #print("ORIGINAL:"+str(line.split()))
+                    if base64==False:
+                        base64=True
+                        base64_string = convert_to_base64(line.split()[0])
+                        #print("DECODED:"+base64_string)
+                        words=' '
+                    else:
+                        base64_string = base64_string + convert_to_base64(line.split()[0])
+                        #print("DECODED:" + base64_string)
+                else:
+                    if base64 == True:
+                        base64 = False
+                        if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                            print(base64_string)
+                            new_words = list()
+                            new_words.append(process_words(base64_string))
+                            words = words + new_words
 
-                #print(words)
+                if "55fa89ceceb5f74a1e3e602b0415c57c" in mail:
+                    print (words)
+
+                #if "55fa89ceceb5f74a1e3e602b0415c57c.inf" in mail:
+                #    words = process_words(words, True)  # parse URL, remove non-alpha words
+
+                # print(words)
                 #    exit(0)
-                #else:
+                # else:
 
                 if i == 0:
-                    words = test_file_size(words,mail)
-                #if '2ca488083d53aa450085685ca4a48674' in mail:
+                    words = test_file_size(words, mail)
+                # if '2ca488083d53aa450085685ca4a48674' in mail:
                 #    print(words)
                 #    exit(0)
 
                 all_words += words
                 # if  find_spam_words(words) != None:
                 #    print(find_spam_words(words))
-
-
 
     dictionary = Counter(all_words)
     list_to_remove = dictionary.keys()
@@ -329,7 +395,7 @@ def make_dictionary(train_dir):
     return new_dictionary
 
 
-def test_file_size(words,mail):
+def test_file_size(words, mail):
     if os.path.getsize(mail) / 1000 > 300:
         new_word = list()
         new_word.append("vvvv_big_file")
@@ -362,8 +428,6 @@ def test_file_size(words,mail):
     return words
 
 
-
-
 def extract_features(mail_dir, dictionary):
     files = [os.path.join(mail_dir, fi) for fi in os.listdir(mail_dir)]
     features_matrix = np.zeros((len(files), DICTIONARY_SIZE))
@@ -378,8 +442,8 @@ def extract_features(mail_dir, dictionary):
                 words = line.split()
                 words = process_words(words)
 
-                if i==0:
-                    words = test_file_size(words,file)
+                if i == 0:
+                    words = test_file_size(words, file)
 
                 for word in words:
                     if word != ' ' and word in dictionary:
@@ -413,7 +477,7 @@ def extract_features_train(mail_dir, dictionary):
                 words = line.split()
                 words = process_words(words)
                 if i == 0:
-                    words = test_file_size(words,file)
+                    words = test_file_size(words, file)
 
                 for word in words:
                     if word != ' ' and word in dictionary:
@@ -428,15 +492,15 @@ def extract_features_train(mail_dir, dictionary):
 def build_model(x_train, y_train):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Flatten(input_shape=(DICTIONARY_SIZE,)))
-    model.add(tf.keras.layers.Dense(512, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(512, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(320, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(320, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
                   metrics=['accuracy'])
 
     # print("\n TIPPPPPP" + str(type(x_train)) + "\n ")
-    model.fit(x_train, y_train, epochs=7)
+    model.fit(x_train, y_train, epochs=5)
     return model
 
 
@@ -528,12 +592,12 @@ elif sys.argv[1] == "-train+scan":
     dictionary = make_dictionary(sys.argv[2])
     x_train, y_train = extract_features_train(sys.argv[2], dictionary)
     x_train = tf.keras.utils.normalize(x_train, axis=1)
-    #print("\n TIPPPPPP - normalised_train" + str(type(x_train)) + "\n ")
+    # print("\n TIPPPPPP - normalised_train" + str(type(x_train)) + "\n ")
     model = build_model(x_train, y_train)
 
     x_test, y_test = extract_features_train(sys.argv[3], dictionary)
     x_test = tf.keras.utils.normalize(x_test, axis=1)
-    #print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
+    # print("\n TIPPPPPP - normalised_test" + str(type(x_test)) + "\n ")
     val_loss, val_acc = model.evaluate(x_test, y_test)
     classify_emails_train(sys.argv[3], model, x_test, sys.argv[4])
     # print("loss: " + str(val_loss) + " - acc: " + str(val_acc))
