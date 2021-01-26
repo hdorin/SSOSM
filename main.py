@@ -9,7 +9,7 @@ import json
 from shutil import copyfile
 import base64
 
-DICTIONARY_SIZE = 6500
+DICTIONARY_SIZE = 7000
 DICTIONARY_RESERVED = 100  # Words selected by me
 SPECIAL_WORDS = ["base64", "hi!", "hi!!", "hi!!!", "subject:hi!", "subject:hi!!",
                  "subject:hi!!!"]  # Avoids processing (symbols removal etc.)
@@ -25,8 +25,8 @@ def is_normal_word(word):
     for item in word:
         if item in "abcdefghijklmnopqrstuvwxyz":
             nr = nr + 1
-        elif item in "0123456789":
-            nr = nr + 1
+        #elif item in "0123456789":
+        #    nr = nr + 1
     if nr == 0 or len(word) / nr > 4:
         return False
 
@@ -70,11 +70,12 @@ def process_words(words, debug=False):
 
     for index, item in enumerate(words):
 
-        words[index] = words[index].lower()
-
-        if len(words[index]) < 2:
+        if len(words[index]) <= 2:
             words[index] = ' '
             continue
+
+        words[index] = words[index].lower()
+
         if words[index].isalpha() == True or words[index] in SPECIAL_WORDS:
             continue
 
@@ -91,7 +92,7 @@ def process_words(words, debug=False):
             can_be_link = False
 
         try:
-            if '@' in words[index]:
+            if '@' in words[index] and '.' in words[index]:
                 can_be_email = True
                 email_search = re.findall(
                     r"(([a-z0-9\.\-+_]+@[x\-+_]+\.[x]{2,3})|[a-z0-9\.\-+_]+@[a-z0-9\-+_]+\.[a-z]{2,3})", words[index])
@@ -107,56 +108,53 @@ def process_words(words, debug=False):
         #    words[index] = words[index].rstrip('\\r\\n')
 
         if can_be_email == False and can_be_link == False:
-            len_words = len(words[index])
-            if len_words > 150:
-                words[index] = "vvv_long_word"
-                # print("LONG WORD " + words[index])
-            elif len_words > 100:
-                words[index] = "vv_long_word"
-                # print("LONG WORD " + words[index])
-            elif len_words > 70:
-                words[index] = "v_long_word"
-                # print("LONG WORD " + str(words))
-            elif len_words > 50:
-                words[index] = "long_word"
-                # print("LONG WORD " + words[index])
-            else:
-                if words[index].endswith('.'):
-                    words[index] = words[index].rstrip('.')
-                if '\'' in words[index]:
-                    words[index] = words[index].replace('\'', '')
-                if '\"' in words[index]:
-                    words[index] = words[index].replace('\"', '')
-                if words[index].endswith(','):
-                    words[index] = words[index].rstrip(',')
-                if words[index].endswith('!'):
-                    words[index] = words[index].rstrip('!')
-                if words[index].endswith('?'):
-                    words[index] = words[index].rstrip('?')
-                if words[index].endswith(':'):
-                    words[index] = words[index].rstrip(':')
-                if words[index].endswith(';'):
-                    words[index] = words[index].rstrip(';')
-                if words[index].startswith('['):
-                    words[index] = words[index].lstrip('[')
-                if words[index].endswith(']'):
-                    words[index] = words[index].rstrip(']')
-                if words[index].startswith('('):
-                    words[index] = words[index].lstrip('(')
-                if words[index].endswith(')'):
-                    words[index] = words[index].rstrip(')')
-                words[index] = words[index].replace('-', '')
+            words_index = words[index]
+            words_index_first = words[index][0]
+            words_index_last = words[index][-1]
+            if words_index_first == '<' or words_index_last == '>' or words_index_first == '\\' or \
+                    words_index_first == '/' or words_index_first == '-':
+                words[index] = ' '
+                continue
+            if words_index_last == '\"' and words_index_first != '\"':
+                words[index] = ' '
+                continue
+            if '\'' in words_index:
+                words[index] = words_index.rstrip('\'')
+                words[index] = words_index.lstrip('\'')
+            if '\"' in words_index:
+                words[index] = words_index.rstrip('\"')
+                words[index] = words_index.lstrip('\"')
+            if words_index_last == '.':
+                words[index] = words_index.rstrip('.')
+            elif words_index_last == ',':
+                words[index] = words_index.rstrip(',')
+            elif words_index_last == '!':
+                words[index] = words_index.rstrip('!')
+            elif words_index_last == '?':
+                words[index] = words_index.rstrip('?')
+            elif words_index_last == ':':
+                words[index] = words_index.rstrip(':')
+            elif words_index_last == ';':
+                words[index] = words_index.rstrip(';')
+            if words_index_first == '[':
+                words[index] = words_index.lstrip('[')
+            if words_index_last == ']':
+                words[index] = words_index.rstrip(']')
+            if words_index_first == '(':
+                words[index] = words_index.lstrip('(')
+            if words_index_last == ')':
+                words[index] = words_index.rstrip(')')
+            # words[index] = words_index.replace('-', '')
 
-                if len(words[index]) < 2:
-                    words[index] = ' '
+            if len(words[index]) <= 2:
+                words[index] = ' '
+                continue
 
-                if allow_normal_words == True and is_normal_word(words[index]) == True:
-                    continue
-                if words[index].isalpha() == False:
-                    words[index] = ' '
+            if allow_normal_words == True and is_normal_word(words[index]) == True:
+                continue
+            if words[index].isalpha() == False:
+                words[index] = ' '
         else:
-            # print("NON-ALPHA " + words[index])
-
             if can_be_email == True:
                 # Sa gaseasca adresa cu xxxx... si sa aleaga doar primii xx dupa ., nu xxa, sau ceva de genul
                 matches = email_search
@@ -180,32 +178,38 @@ def process_words(words, debug=False):
                     new_word.append(re.search(r"[a-z0-9\.\-+_]+@", match)[0][0:-1])
                     words = words + new_word
                     # print("SENDER + " + new_word[0] + " _>" + words[index])
+                    continue
             elif can_be_link == True:
 
                 # print(">CONTINE link " + words[index])
                 words[index] = link_search
 
                 # print(">CONTINE link1 " + words[index])
-                if urlparse(words[index]).netloc:
-                    domain = urlparse(words[index])
+                url_parse = urlparse(words[index])
+                if url_parse.netloc:
+                    domain = url_parse
                     if '.' in domain.netloc:
-                        if domain.netloc.startswith('w') and 'w.' in str(domain.netloc):
-                            words[index] = domain.scheme + "://" + domain.netloc.split('.')[0] + "." + \
-                                           domain.netloc.split('.')[-2] + "." + \
-                                           domain.netloc.split('.')[-1]
+                        if domain.netloc.startswith('w') and 'w.' in domain.netloc:
+                            words_split = domain.netloc.split('.')
+                            words[index] = domain.scheme + "://" + words_split[0] + "." + \
+                                           words_split[-2] + "." + \
+                                           words_split[-1]
                         else:
-                            words[index] = domain.scheme + "://" + domain.netloc.split('.')[-2] + "." + \
-                                           domain.netloc.split('.')[-1]
+                            words_split = domain.netloc.split('.')
+                            words[index] = domain.scheme + "://" + words_split[-2] + "." + \
+                                           words_split[-1]
 
                         # print(">CONTINE link2 " + domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
                         # adaug domeniul
+                        split_netloc = domain.netloc.split('.')
                         new_word = list()
-                        new_word.append(domain.netloc.split('.')[-2] + "." + domain.netloc.split('.')[-1])
+                        words_split = split_netloc
+                        new_word.append(words_split[-2] + "." + words_split[-1])
                         words = words + new_word
 
                         # adaug domeniul tarii
                         new_word = list()
-                        new_word.append("." + domain.netloc.split('.')[-1])
+                        new_word.append("." + split_netloc[-1])
                         words = words + new_word
 
                         # adaug http
@@ -223,36 +227,20 @@ def process_words(words, debug=False):
                     # words = words + new_word
                     # print("NO HTTP!" + words[index])
                     if words[index].startswith('w') and 'w.' in words[index]:
-                        words[index] = words[index].split('.')[0] + "." + \
-                                       words[index].split('.')[-2] + "." + \
-                                       words[index].split('.')[-1]
+                        words_split = words[index].split('.')
+                        words[index] = words_split[0] + "." + \
+                                       words_split[-2] + "." + \
+                                       words_split[-1]
                     else:
-                        words[index] = words[index].split('.')[-2] + "." + words[index].split('.')[-1]
+                        words_split = words[index].split('.')
+                        words[index] = words_split[-2] + "." + words_split[-1]
 
                     new_word = list()
-                    new_word.append(words[index].split('.')[-2] + "." + words[index].split('.')[-1])
+                    words_split = words[index].split('.')
+                    new_word.append(words_split[-2] + "." + words_split[-1])
                     words = words + new_word
+                continue
 
-            elif (len(words[index]) >= 1 + 1 and len(words[index]) <= 15) and (
-                    words[index].startswith('$') or words[index].startswith('usd$')) and words[index][
-                1].isnumeric() == True:
-                len_words = len(words[index])
-
-                if len_words >= 4 + 4 and words[index].startswith('usd$'):
-                    words[index] = "usd$$$"
-                    new_word = list()
-                    new_word.append("$$$")
-                    words = words + new_word
-                if words[index].startswith('$'):
-                    if len_words >= 1 + 4:
-                        words[index] = "$$$"
-                    elif len_words >= 1 + 2:
-                        words[index] = "$$"
-                    elif len_words >= 1 + 1:
-                        words[index] = "$"
-            # elif str(words[index]).startswith('<'):
-            #    (">GASIT tag " + item)
-            #    words[index] = ' '
             else:
                 words[index] = ' '
     return words
@@ -313,7 +301,7 @@ def make_dictionary(train_dir):
                 #    exit(0)
                 # else:
 
-                #if i == 0:
+                # if i == 0:
                 #    words = test_file_size(words, mail)
                 # if '2ca488083d53aa450085685ca4a48674' in mail:
                 #    print(words)
@@ -386,7 +374,7 @@ def extract_features(mail_dir, dictionary):
     fileID = 0
     print("\nExtracting features...", end="", flush=True)
     for file in files:
-        #print(".", end="", flush=True)
+        print(".", end="", flush=True)
         fileID = fileID + 1
         with open(file, encoding="Latin-1") as fi:
             base64 = False
@@ -406,7 +394,7 @@ def extract_features(mail_dir, dictionary):
                         base64 = False
                         words = words + process_words(base64_string.split())
 
-                #if i == 0:
+                # if i == 0:
                 #    words = test_file_size(words, file)
 
                 for word in words:
@@ -454,7 +442,7 @@ def extract_features_train(mail_dir, dictionary):
                     if base64 == True:
                         base64 = False
                         words = words + process_words(base64_string.split())
-                #if i == 0:
+                # if i == 0:
                 #    words = test_file_size(words, file)
 
                 for word in words:
@@ -470,8 +458,8 @@ def extract_features_train(mail_dir, dictionary):
 def build_model(x_train, y_train):
     model = tf.keras.models.Sequential()
     model.add(tf.keras.layers.Flatten(input_shape=(DICTIONARY_SIZE,)))
-    model.add(tf.keras.layers.Dense(320, activation=tf.nn.relu))
-    model.add(tf.keras.layers.Dense(320, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(300, activation=tf.nn.relu))
+    model.add(tf.keras.layers.Dense(300, activation=tf.nn.relu))
     model.add(tf.keras.layers.Dense(1, activation=tf.nn.sigmoid))
     model.compile(optimizer='adam',
                   loss='binary_crossentropy',
@@ -531,7 +519,7 @@ elif sys.argv[1] == "-info":
     f.write("Anti_Spam_Filter_SSOSM\n")
     f.write("Haloca_Dorin\n")
     f.write("PaleVader\n")
-    f.write("Version_2.02\n")
+    f.write("Version_2.03\n")
     f.close()
 elif sys.argv[1] == "-scan":
     dictionary = dict()
