@@ -531,7 +531,7 @@ elif sys.argv[1] == "-info":
     f.write("Anti_Spam_Filter_SSOSM\n")
     f.write("Haloca_Dorin\n")
     f.write("PaleVader\n")
-    f.write("Version_2.01\n")
+    f.write("Version_2.02\n")
     f.close()
 elif sys.argv[1] == "-scan":
     dictionary = dict()
