@@ -313,8 +313,8 @@ def make_dictionary(train_dir):
                 #    exit(0)
                 # else:
 
-                if i == 0:
-                    words = test_file_size(words, mail)
+                #if i == 0:
+                #    words = test_file_size(words, mail)
                 # if '2ca488083d53aa450085685ca4a48674' in mail:
                 #    print(words)
                 #    exit(0)
@@ -406,8 +406,8 @@ def extract_features(mail_dir, dictionary):
                         base64 = False
                         words = words + process_words(base64_string.split())
 
-                if i == 0:
-                    words = test_file_size(words, file)
+                #if i == 0:
+                #    words = test_file_size(words, file)
 
                 for word in words:
                     if word != ' ' and word in dictionary:
@@ -454,8 +454,8 @@ def extract_features_train(mail_dir, dictionary):
                     if base64 == True:
                         base64 = False
                         words = words + process_words(base64_string.split())
-                if i == 0:
-                    words = test_file_size(words, file)
+                #if i == 0:
+                #    words = test_file_size(words, file)
 
                 for word in words:
                     if word != ' ' and word in dictionary:
